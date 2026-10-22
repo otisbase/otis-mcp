@@ -20,6 +20,10 @@ Time, billable expenses and AI usage share source amounts that can be allocated 
 
 An expense with a billable amount creates one linked billable atomically. Editing that expense updates the same linked item; agents must not create it again. Unreserved and uninvoiced source items can be replaced with audit history. Reserved or billed items cannot be edited. Cancel drafts before changing their source work; issued source facts remain locked. References can point to external documents. Uploaded files are not stored in this build.
 
+### Timers
+
+Timers (Stefan, 2026-10-23) track work live. `timer_start` records a start on Otis's clock for a client and task; `timer_stop` records the end. Several timers can run at once, for the same or different clients; each belongs to the member who started it, and only that member or the owner can stop it. A user may report an earlier start or stop ("I started at 9"): it must carry a UTC offset, lie within the last 7 days and not in the future, and the stop cannot precede the start; Otis keeps its own clock times beside the reported ones and marks which were reported. Tracked time is exact to the minute: the duration rounds to the nearest whole minute and becomes hours to six decimals (83 minutes = 1.383333 h). Stopping with an hourly `rate_minor` records the time as one time billable (unit hours, amount = hours × rate rounded half up) linked by `timer_id`, which survives later corrections through `billable_record`; stopping without a rate leaves the timer stopped until a second `timer_stop` supplies the rate. Under a minute records nothing. A timer can be discarded instead. A stop after more than 12 hours returns a warning to confirm with the user. Timers never invoice anything by themselves.
+
 ## Partial billing
 
 Available amount equals original amount minus reserved and invoiced source amounts. The state label is a summary; agents must inspect remaining amounts to find partially billable work.

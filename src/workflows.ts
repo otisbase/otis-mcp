@@ -21,8 +21,8 @@ export const workflows: Workflow[] = [
   },
   {
     name: "record-work", label: "Record work", description: "Record or correct Otis billable time, services or reported AI usage using supplied amounts.",
-    tools: ["clients_list", "client_save", "billables_list", "billable_record"], demoTools: ["billables_list"],
-    steps: ["Identify the client, description, kind, quantity/unit, supplied amount and optional rate/cost. AI usage must be explicitly measured or estimated; do not measure or price it automatically. Inspect existing records when the request might be an edit or duplicate.", "Create with billable_record, or preserve item_id when correcting an unreserved, uninvoiced item. Do not edit linked expenses through this tool. Return the recorded facts and remaining billable amount; saving work does not invoice it."],
+    tools: ["clients_list", "client_save", "billables_list", "billable_record", "timer_start", "timer_stop", "timers_list"], demoTools: ["billables_list", "timers_list"],
+    steps: ["When the user is starting work now, use timer_start for the client and task; when they say they stopped, use timers_list to find the running timer and timer_stop. Pass a reported time only if the user gives one. Ask for the hourly rate if it is not known, and pass rate_minor so the tracked hours are recorded as billable work. Several timers can run; never stop one the user did not mean.", "Identify the client, description, kind, quantity/unit, supplied amount and optional rate/cost. AI usage must be explicitly measured or estimated; do not measure or price it automatically. Inspect existing records when the request might be an edit or duplicate.", "Create with billable_record, or preserve item_id when correcting an unreserved, uninvoiced item. Do not edit linked expenses through this tool. Return the recorded facts and remaining billable amount; saving work does not invoice it."],
     demoSteps: ["List sample billables and explain cost versus price, measured versus estimated usage, and remaining/reserved/invoiced amounts. Do not collect real work to save."]
   },
   {

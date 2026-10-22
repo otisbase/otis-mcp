@@ -12,6 +12,8 @@ export const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((s) => {
   const value = new Date(`${s}T00:00:00Z`);
   return Number.isFinite(value.getTime()) && value.toISOString().startsWith(s);
 }, "Use a valid calendar date in YYYY-MM-DD format.");
+/** A moment with its UTC offset, such as 2026-10-23T09:00:00+03:00. */
+const instant = z.iso.datetime({ offset: true });
 export const discountSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("fixed"), amount_minor: money }),
   z.object({ kind: z.literal("percent"), rate_ppm: z.number().int().min(0).max(1_000_000) })
@@ -66,6 +68,13 @@ export const schemas = {
   }),
   billable_record: z.object({ ...write, item_id: id.optional(), ...billableFields }),
   billables_list: z.object({ ...context, ...page, client_id: id.optional(), state: z.enum(["unbilled", "reserved", "partial", "invoiced"]).optional() }),
+  timer_start: z.object({ ...write, client_id: id, description: text,
+    started_at: instant.optional().describe("Only when the user reports an earlier start, such as 'I started at 9'. Omit to use Otis's clock.") }),
+  timer_stop: z.object({ ...write, timer_id: id,
+    stopped_at: instant.optional().describe("Only when the user reports an earlier stop. Omit to use Otis's clock."),
+    rate_minor: money.optional().describe("Hourly rate in minor units. With it, the tracked time is recorded as billable work; call again with it to record an already stopped timer."),
+    discard: z.literal(true).optional().describe("Only when the user wants this timer thrown away. Records nothing.") }),
+  timers_list: z.object({ ...context, ...page, state: z.enum(["running", "stopped", "recorded", "discarded"]).optional(), client_id: id.optional() }),
   expense_record: z.object({ ...write, expense_id: id.optional(), vendor: text, category: text, description: text, incurred_on: date,
     cost_minor: money, client_id: id.optional(), billable_amount_minor: money.optional(), reference: text.optional() }),
   expenses_list: z.object({ ...context, ...page, client_id: id.optional() }),
@@ -82,21 +91,21 @@ export const schemas = {
   payment_record: z.object({ ...write, invoice_id: id, amount_minor: money.refine(n => n > 0), received_on: date,
     reference: text.describe("Unique business-wide payment reference. Reuse when reporting the same payment.") }),
   payments_list: z.object({ ...context, ...page, invoice_id: id.optional() }),
-  records_export: z.object({ ...context, ...page, kind: z.enum(["business", "client", "billable", "expense", "invoice", "payment", "audit"]) }),
+  records_export: z.object({ ...context, ...page, kind: z.enum(["business", "client", "billable", "expense", "timer", "invoice", "payment", "audit"]) }),
   feedback_send: z.object({ request_id: requestId, kind: z.enum(["feature", "problem", "other"]),
     message: z.string().trim().min(1).max(4000).describe("The exact plain-text message the user approved. Nothing they did not write or approve."),
     client: z.string().trim().min(1).max(120).optional().describe("The assistant sending this, if known, such as Claude Code."),
     reply_ok: z.boolean().default(false).describe("True only if the user agreed to share their verified email so the team can reply.") })
 } as const;
 export type Operation = keyof typeof schemas;
-export const READ_OPERATIONS = new Set<Operation>(["otis_menu", "businesses_list", "business_get", "tax_guide", "team_list", "clients_list", "billables_list", "expenses_list", "invoice_get", "invoice_check", "invoices_list", "payments_list", "records_export"]);
+export const READ_OPERATIONS = new Set<Operation>(["otis_menu", "businesses_list", "business_get", "tax_guide", "team_list", "clients_list", "billables_list", "timers_list", "expenses_list", "invoice_get", "invoice_check", "invoices_list", "payments_list", "records_export"]);
 export type TaxProfile = z.infer<typeof taxProfileSchema>;
 export type Tax = z.infer<typeof taxSchema>;
 export type Discount = z.infer<typeof discountSchema>;
 export type Business = { id: "business"; name: string; currency: string; billing_address?: string; invoice_preferences?: z.infer<typeof invoicePreferencesSchema>; tax_profile?: TaxProfile };
 export type ClientRecord = { id: string; name: string; email?: string; billing_address?: string; country?: string; region?: string; postal_code?: string; customer_type: "business" | "consumer" | "unknown"; tax_ids: string[]; tax_evidence?: string };
 export type Billable = Omit<z.infer<typeof schemas.billable_record>, "request_id" | "business_id" | "item_id"> & {
-  id: string; currency: string; expense_id?: string; reserved_minor: number; invoiced_minor: number; remaining_minor: number;
+  id: string; currency: string; expense_id?: string; timer_id?: string; reserved_minor: number; invoiced_minor: number; remaining_minor: number;
   state: "unbilled" | "reserved" | "partial" | "invoiced";
 };
 export type InvoiceLine = {
@@ -111,6 +120,13 @@ export type Invoice = {
   business_snapshot: Business; client_snapshot: ClientRecord;
 };
 export type Expense = Omit<z.infer<typeof schemas.expense_record>, "request_id" | "business_id" | "expense_id"> & { id: string; currency: string; billable_id?: string };
+/** Time tracked from a start to a stop. Times are Otis's clock unless the user reported them (start_reported, stop_reported). */
+export type Timer = {
+  id: string; client_id: string; description: string; started_by: string; state: "running" | "stopped" | "recorded" | "discarded";
+  started_at: string; clock_started_at: string; start_reported: boolean;
+  stopped_at?: string; clock_stopped_at?: string; stop_reported?: boolean;
+  minutes?: number; hours?: string; billable_id?: string;
+};
 export type Payment = { id: string; invoice_id: string; amount_minor: number; currency: string; received_on: string; reference: string };
 export type Member = { id: string; user_id: string; role: "owner" | "editor" | "viewer"; status: "active" | "invited" | "removed"; invitation_id?: string; expires_at?: number; email?: string };
 export type Actor = { userId: string; home: boolean; inviteeId?: string };

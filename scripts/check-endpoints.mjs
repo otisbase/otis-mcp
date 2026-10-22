@@ -61,7 +61,9 @@ try {
   await client.connect(new StreamableHTTPClientTransport(new URL(`${origin}/demo/mcp`)));
   try {
     const tools = (await client.listTools()).tools;
-    assert.equal(tools.length, 11);
+    // Every read tool except businesses_list and team_list, timers_list included.
+    assert.equal(tools.length, 12);
+    assert(tools.some(t => t.name === 'timers_list'));
     assert(client.getInstructions().includes('otis_menu'));
     for (const tool of tools) {
       const args = tool.name === 'records_export' ? { kind: 'business' } : tool.name.startsWith('invoice_') ? { invoice_id: 'sample-invoice' } : {};

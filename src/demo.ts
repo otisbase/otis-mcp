@@ -35,11 +35,11 @@ export function demoResult(operation: Operation, input: unknown): unknown {
   else if (operation === "invoice_get") {
     if (parsed.invoice_id !== "sample-invoice") return { demo: true, ok: false, code: "NOT_FOUND", message: "Sample invoice not found. List invoices first." };
     data = { ...invoices[0], paid_minor: 40000, balance_minor: 60000 };
-  } else if (operation === "expenses_list") data = paginate([]);
+  } else if (operation === "expenses_list" || operation === "timers_list") data = paginate([]);
   else if (operation === "invoice_check") data = { ready: false, blockers: [{ field: "demo", message: "The sample demo cannot issue invoices.", next_tool: "invoice_get" }] };
   else if (operation === "payments_list") data = paginate(payments.filter((payment) => !parsed.invoice_id || payment.invoice_id === parsed.invoice_id));
   else if (operation === "records_export") {
-    const byKind: Record<string, unknown[]> = { business: [business], client: clients, billable: billables, invoice: invoices, payment: payments, audit: [] };
+    const byKind: Record<string, unknown[]> = { business: [business], client: clients, billable: billables, timer: [], invoice: invoices, payment: payments, audit: [] };
     data = paginate(byKind[String(parsed.kind)] ?? []);
   } else return { demo: true, ok: false, code: "DEMO_READ_ONLY", message: "The sample demo is read-only. Connect the private /mcp endpoint to save your own records." };
   return { demo: true, sample_as_of: "2026-10-20", notice: "Fictional sample data. This demo does not save inputs or create an account.", ok: true, data };

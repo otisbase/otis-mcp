@@ -28,7 +28,7 @@ async function setup() {
 }
 
 describe("all private MCP tools through the authenticated transport", () => {
-  it("covers the complete 26-tool contract, two identities, records and permission feedback", async () => {
+  it("covers the complete 29-tool contract, two identities, records and permission feedback", async () => {
     const email = `${rid()}@example.com`;
     const a = await connected(), b = await connected(email);
     const exercised = new Set<string>();
@@ -51,6 +51,9 @@ describe("all private MCP tools through the authenticated transport", () => {
       await call("clients_list");
       const item = await call("billable_record", { request_id: rid(), client_id: customer.id, kind: "time", quantity: "1", unit: "hour", amount_minor: 1000, description: "Work" });
       await call("billables_list");
+      const timer = await call("timer_start", { request_id: rid(), client_id: customer.id, description: "Timed work", started_at: new Date(Date.now() - 30 * 60_000).toISOString() });
+      await call("timers_list", { state: "running" });
+      expect((await call("timer_stop", { request_id: rid(), timer_id: timer.id, rate_minor: 6000 })).billable.amount_minor).toBe(3000);
       await call("expense_record", { request_id: rid(), vendor: "Test", category: "test", description: "Test expense", cost_minor: 10, incurred_on: "2026-10-21" });
       await call("expenses_list");
       const draftArgs = { client_id: customer.id, supply_date: "2026-10-21", due_date: "2026-11-21", lines: [{ item_id: item.id, amount_minor: 1000, tax }] };
@@ -62,7 +65,7 @@ describe("all private MCP tools through the authenticated transport", () => {
       await call("payment_record", { request_id: rid(), invoice_id: invoice.id, amount_minor: 1000, received_on: "2026-10-21", reference: rid() });
       expect((await call("invoice_get", { invoice_id: invoice.id })).balance_minor).toBe(0);
       await call("invoices_list"); await call("payments_list");
-      for (const kind of ["business", "client", "billable", "expense", "invoice", "payment", "audit"]) {
+      for (const kind of ["business", "client", "billable", "expense", "timer", "invoice", "payment", "audit"]) {
         const ids = new Set(); let offset = 0;
         for (;;) {
           const page = await call("records_export", { kind, limit: 1, offset });
@@ -82,7 +85,7 @@ describe("all private MCP tools through the authenticated transport", () => {
       expect(denied).toMatchObject({ isError: true, structuredContent: { ok: false, code: "FORBIDDEN" } });
       await call("team_member_set", { request_id: rid(), member_id: invite.id, role: "removed" });
       await call("feedback_send", { request_id: rid(), kind: "other", message: "Transport QA feedback", client: "otis-local-complete-coverage" });
-      expect(exercised.size).toBe(26);
+      expect(exercised.size).toBe(29);
       expect([...exercised].sort()).toEqual(Object.keys(schemas).sort());
     } finally { await a.client.close(); await b.client.close(); }
   });
@@ -283,6 +286,7 @@ describe("tenant boundaries and invitation lifecycle", () => {
       business_set: { name: "Hijack", currency: "AUD" }, tax_profile_set: { profile },
       team_invite: { email: "nobody@example.com", role: "viewer" }, team_member_set: { member_id: invite.id, role: "editor" },
       client_save: { name: "New client" }, billable_record: b.work,
+      timer_start: { client_id: b.client.id, description: "QA" }, timer_stop: { timer_id: "any" },
       expense_record: { vendor: "QA", description: "QA", category: "test", incurred_on: "2026-10-21", cost_minor: 1 },
       invoice_draft: { client_id: b.client.id, supply_date: "2026-10-21", due_date: "2026-11-21", lines: [{ item_id: b.item.id, amount_minor: 1, tax }] },
       invoice_issue: { invoice_id: invoice.id, expected_total_minor: 5000, confirmed: true }, invoice_cancel_draft: { invoice_id: invoice.id, reason: "Test" },

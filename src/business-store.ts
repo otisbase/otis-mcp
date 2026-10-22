@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { z } from "zod";
 import { schemas, READ_OPERATIONS, FAIR_USE, canonical, DomainError, fail,
-  type Operation, type Business, type ClientRecord, type Billable, type DomainResult, type Invoice, type Payment, type Actor, type Member, type Expense } from "./models";
+  type Operation, type Business, type ClientRecord, type Billable, type DomainResult, type Invoice, type Payment, type Actor, type Member, type Expense, type Timer } from "./models";
 import { calculate, round, taxBlockers } from "./billing";
 
 export class BusinessStore extends DurableObject<Env> {
@@ -214,8 +214,53 @@ export class BusinessStore extends DurableObject<Env> {
       }
       case "billable_record": {
         const { request_id, business_id, item_id, ...details } = schemas.billable_record.parse(input);
-        if (item_id && this.get<Billable>("billable", item_id).expense_id) fail("LINKED_EXPENSE", "Edit this item through expense_record with its expense_id so expense cost and billable price stay consistent.");
-        return this.saveBillable(details, item_id);
+        const existing = item_id ? this.get<Billable>("billable", item_id) : null;
+        if (existing?.expense_id) fail("LINKED_EXPENSE", "Edit this item through expense_record with its expense_id so expense cost and billable price stay consistent.");
+        // Work recorded from a timer keeps its link when corrected.
+        return this.saveBillable({ ...details, ...(existing?.timer_id ? { timer_id: existing.timer_id } : {}) }, item_id);
+      }
+      case "timer_start": {
+        const p = schemas.timer_start.parse(input);
+        this.get<Business>("business", "business");
+        this.get<ClientRecord>("client", p.client_id);
+        const now = Date.now(), started = p.started_at ? reportedTime(p.started_at, now) : now;
+        const timer: Timer = { id: crypto.randomUUID(), client_id: p.client_id, description: p.description, started_by: `member:${actor.userId}`, state: "running",
+          started_at: new Date(started).toISOString(), clock_started_at: new Date(now).toISOString(), start_reported: !!p.started_at };
+        this.put("timer", timer);
+        return withElapsed(timer, now);
+      }
+      case "timer_stop": {
+        const p = schemas.timer_stop.parse(input);
+        const timer = this.get<Timer>("timer", p.timer_id);
+        if (timer.started_by !== `member:${actor.userId}` && this.membership(actor.userId)?.role !== "owner") fail("FORBIDDEN", "Only the person who started this timer, or the business owner, can stop it.");
+        if (timer.state === "recorded" || timer.state === "discarded") fail("TIMER_CLOSED", `This timer is already ${timer.state}.`, { billable_id: timer.billable_id ?? null });
+        if (p.discard) {
+          timer.state = "discarded"; this.put("timer", timer);
+          return { timer, recorded: false };
+        }
+        if (timer.state === "running") {
+          const now = Date.now(), stopped = p.stopped_at ? reportedTime(p.stopped_at, now) : now;
+          if (stopped < Date.parse(timer.started_at)) fail("STOP_BEFORE_START", "The stop time is before the timer started. Check the reported time.");
+          // Exact to the minute: the tracked time rounds to the nearest whole minute, stored as hours to six decimals.
+          const minutes = Math.round((stopped - Date.parse(timer.started_at)) / 60_000);
+          Object.assign(timer, { state: "stopped", stopped_at: new Date(stopped).toISOString(), clock_stopped_at: new Date(now).toISOString(),
+            stop_reported: !!p.stopped_at, minutes, hours: hoursText(minutes) });
+        }
+        const warning = timer.minutes! > 12 * 60 ? "This timer ran for more than 12 hours. Confirm the time with the user before invoicing it." : undefined;
+        if (p.rate_minor === undefined || timer.minutes === 0) {
+          this.put("timer", timer);
+          return { timer, recorded: false, ...(timer.minutes === 0 ? { message: "Less than a minute was tracked, so there is nothing to record." } : { message: "Stopped. Pass rate_minor to record this time as billable work." }), ...(warning ? { warning } : {}) };
+        }
+        const microHours = round(BigInt(timer.minutes!) * 1_000_000n, 60n);
+        const billable = this.saveBillable({ client_id: timer.client_id, kind: "time", description: timer.description, quantity: timer.hours!, unit: "hours",
+          rate_minor: p.rate_minor, amount_minor: round(BigInt(microHours) * BigInt(p.rate_minor), 1_000_000n), timer_id: timer.id });
+        timer.state = "recorded"; timer.billable_id = billable.id; this.put("timer", timer);
+        return { timer, recorded: true, billable, ...(warning ? { warning } : {}) };
+      }
+      case "timers_list": {
+        const p = schemas.timers_list.parse(input), now = Date.now();
+        const page = this.list("timer", p.limit, p.offset, { state: p.state, client_id: p.client_id });
+        return { ...page, records: (page.records as Timer[]).map(timer => withElapsed(timer, now)) };
       }
       case "billables_list": { const { limit, offset, client_id, state } = schemas.billables_list.parse(input); return this.list("billable", limit, offset, { client_id, state }); }
       case "expense_record": {
@@ -290,4 +335,22 @@ export class BusinessStore extends DurableObject<Env> {
       default: fail("NOT_AVAILABLE", "This operation is handled by the MCP service.");
     }
   }
+}
+
+/** A time the user reported: not in the future (one minute of clock skew allowed) and no more than 7 days ago. */
+function reportedTime(value: string, now: number): number {
+  const time = Date.parse(value);
+  if (time > now + 60_000) fail("TIME_IN_FUTURE", "A reported time cannot be in the future.");
+  if (time < now - 7 * 86_400_000) fail("TIME_TOO_OLD", "A reported time must be within the last 7 days. Record older work with billable_record.");
+  return time;
+}
+/** Whole minutes as hours to six decimals, without trailing zeros: 90 → "1.5", 83 → "1.383333". */
+function hoursText(minutes: number): string {
+  const micro = String(round(BigInt(minutes) * 1_000_000n, 60n)).padStart(7, "0");
+  const whole = micro.slice(0, -6), fraction = micro.slice(-6).replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole;
+}
+/** A running timer also reports how long it has been running. */
+function withElapsed(timer: Timer, now: number): Timer & { elapsed_minutes?: number } {
+  return timer.state === "running" ? { ...timer, elapsed_minutes: Math.max(0, Math.round((now - Date.parse(timer.started_at)) / 60_000)) } : timer;
 }

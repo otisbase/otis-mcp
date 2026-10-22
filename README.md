@@ -16,7 +16,7 @@ https://mcp.otisbase.com/mcp
 
 Sign-in uses OAuth with an email code, so there is no API key. [How to install](https://otisbase.com/connect) has a guide for Claude, ChatGPT, Claude Code, Codex, Cursor, Muse, Grok Bot and Mistral Vibe. The hosted service is free. Records are stored in the EU.
 
-- [MCP docs](https://otisbase.com/docs): the endpoint, the rules and all 26 tools.
+- [MCP docs](https://otisbase.com/docs): the endpoint, the rules and every tool.
 - [Otis Plugins](https://github.com/otisbase/otis-plugins): the plugin for Claude and Codex, with eleven workflow skills.
 - [Skills](https://otisbase.com/skills): what each skill does.
 
