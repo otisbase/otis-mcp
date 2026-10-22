@@ -141,6 +141,7 @@ Send only what the user wrote or approved: no business records or chat history. 
 Money is an integer number of minor units, never a floating-point amount.
 USD 125.00 = 12500 minor units; JPY 125 = 125 minor units.
 AI usage must say measured or estimated. Do not invent missing amounts or business facts.
+Timer times are ISO 8601 with a UTC offset (2026-10-23T09:00:00+03:00); omit them to use Otis's clock. Ask for the hourly rate before recording a timer; never assume one.
 Each write needs a unique request_id of 8–128 characters. Keep it unchanged on retries.
 Reusing an ID with different input returns IDEMPOTENCY_CONFLICT.
 Follow next_offset until null when listing or exporting records.
