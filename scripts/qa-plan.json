@@ -1,0 +1,23 @@
+{
+  "business_name": "OTIS QA ONLY — 2026-10-20",
+  "currency": "GBP",
+  "billing_address": "Fictional QA business address, London, GB — not a trading business",
+  "invoice_prefix": "QA-ONLY-",
+  "client_name": "QA ONLY — Fictional Client",
+  "client_address": "Fictional QA client address, London, GB",
+  "tax_registration": "QA-ONLY-NOT-A-REAL-REGISTRATION",
+  "supply_date": "2026-10-20",
+  "due_date": "2026-11-20",
+  "time_amount_minor": 100000,
+  "expense_amount_minor": 15000,
+  "ai_amount_minor": 5000,
+  "first_invoice_source_minor": 70000,
+  "first_invoice_discount_minor": 11500,
+  "first_invoice_net_minor": 58500,
+  "first_invoice_tax_minor": 11700,
+  "first_invoice_total_minor": 70200,
+  "second_invoice_total_minor": 60000,
+  "first_payment_minor": 25000,
+  "second_payment_minor": 45200,
+  "note": "SOFTWARE TEST ONLY. Fictional work, tax facts and reported payments. No actual supply, invoice delivery, payment collection or tax obligation."
+}

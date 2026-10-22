@@ -1,0 +1,31 @@
+import type { Operation } from "./models";
+
+/** One description per MCP tool: the server registers them, and the website's Docs page lists their first sentence. */
+export const descriptions: Record<Operation, string> = {
+  otis_menu: "Show the Otis chat menu for /otis, 'show Otis menu', or getting started. Returns ten independent actions with mapped tools and workflow guidance without reading or changing business records. Wait for the user's choice.",
+  businesses_list: "Discover your own business and invitations/shared businesses. Check access status, then pass business_id on subsequent tools.",
+  business_get: "Read business identity, currency and tax profile, or the next setup step.",
+  business_set: "Owner: create or replace business name, currency and address using confirmed facts. Preserves tax profile and omitted invoice preferences. Supports invoice prefix, number padding, starting number, default note and payment instructions. Starting number locks after first issuance; currency locks after financial records exist.",
+  tax_profile_set: "Owner: record confirmed country, region, registrations and effective dates. Read tax_guide first; unknown is not the same as not registered.",
+  tax_guide: "Read dated official-source tax setup guidance for US, CA, GB or AU, or the general checklist. Use before tax setup and whenever jurisdiction or service changes. This does not determine liability or a rate.",
+  team_list: "List business memberships and pending invitations. Roles are owner, editor and viewer.",
+  team_invite: "Owner: invite an email as editor or viewer for seven days. No email is sent; recipient connects with that email and calls businesses_list then team_accept.",
+  team_accept: "Accept an invitation addressed to your verified email. Pass the invitation's business_id and invitation_id from businesses_list.",
+  team_member_set: "Owner: change editor/viewer roles or remove membership immediately. The owner cannot be removed. Confirm the person and new access with the user.",
+  clients_list: "List client records. Follow next_offset to retrieve every page.",
+  client_save: "Create or replace client details. Collect country, region and business/consumer status for invoice tax review; never infer these from currency.",
+  billable_record: "Create or replace unreserved, uninvoiced work using item_id. Linked expenses must be edited with expense_record. Record time, a reimbursable expense or AI usage. Supply total price in currency minor units. AI usage must be measured or estimated; amounts and rates are never invented.",
+  billables_list: "Find billable items. remaining_minor is available for new invoices, including partially billed or reserved items; do not rely on state=unbilled alone.",
+  expense_record: "Create or replace a business expense using expense_id, optionally linked to a client. Linked billables update atomically and cannot change once reserved or invoiced. billable_amount_minor also creates one linked billable item atomically; do not record it again.",
+  expenses_list: "List recorded expenses, including nonbillable costs and linked billable item IDs.",
+  invoice_draft: "Reserve explicit amounts from billable items, including partial amounts. Supply line tax treatments and optional line/invoice discounts. Returns totals and missing-information feedback. No number assigned.",
+  invoice_get: "Read immutable invoice contents, source allocations, tax details and current reported payment balance.",
+  invoice_check: "Check issuance readiness. Read blockers and their next_tool; ask the user for missing facts. Success validates recorded fields, not legal tax compliance.",
+  invoices_list: "List invoices with reported balances. Follow next_offset.",
+  invoice_issue: "Finalize a draft after the user approves its exact contents, tax treatment and total. Blocks missing facts; atomically assigns a number. Does not send a document or certify tax compliance.",
+  invoice_cancel_draft: "Cancel an unissued draft and release all its allocations. Use to rebuild a draft with corrected facts. Issued invoices cannot be changed.",
+  payment_record: "Record a reported partial or full payment for an issued invoice. Unique business-wide reference prevents double counting. Overpayments are rejected. No bank verification occurs.",
+  payments_list: "List reported payments, optionally for one invoice.",
+  records_export: "Export business records and audit history as paginated JSON. Follow next_offset until null. Viewers can read/export.",
+  feedback_send: "Send feedback to the Otis team: a feature request, a problem or anything else. Offer it when the user wants something Otis cannot do, asks for a feature or hits a problem; never send unprompted. Show the exact message and send only after the user approves it. Ask before setting reply_ok, which shares their verified email for a reply. Sends only the message, kind and client; never business records or chat history. Limit 20 a day per person; any role can send."
+};
