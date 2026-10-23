@@ -141,7 +141,7 @@ try {
   artifacts.tool_names = tools.tools.map(t => t.name);
   assert.equal(tools.tools.length, 25);
   assert.equal((await call(owner, 'otis_menu')).options.length, 9);
-  assert((await owner.client.getPrompt({ name: 'otis' })).messages[0].content.text.includes('10. Export'));
+  assert((await owner.client.getPrompt({ name: 'otis' })).messages[0].content.text.includes('9. Export'));
   const resources = await owner.client.listResources();
   assert(resources.resources.some(r => r.uri === 'otis://docs/workflows'));
   assert((await owner.client.readResource({ uri: 'otis://docs/workflows' })).contents[0].text.includes('request_id'));
@@ -275,34 +275,17 @@ try {
     due_date: plan.due_date, lines: [{ item_id: time.id, amount_minor: 1, tax }] }, 'ALLOCATION_CONFLICT');
   assert.equal((await allPages(owner, 'invoices_list', { status: 'issued' })).length, 2);
   pass('Inclusive-tax draft, cancellation/release and £600 final invoice consume the remaining work exactly once');
-  const invitation = await call(owner, 'team_invite', { request_id: rid(), email: memberEmail, role: 'viewer' });
-  liveMember = invitation.id;
-  const discovery = await allPages(member, 'businesses_list');
-  assert(discovery.some(b => b.business_id === businessId && b.status === 'invited'));
+  // Teams are off in production (TEAM_ENABLED "false"): no team tools, and a second identity never reaches this business.
+  for (const name of ['team_list', 'team_invite', 'team_accept', 'team_member_set']) assert(!tools.tools.some(t => t.name === name), `${name} must not be offered`);
   await rejected(member, 'business_get', { business_id: businessId }, 'FORBIDDEN');
-  const acceptance = { request_id: rid(), business_id: businessId, invitation_id: invitation.invitation_id };
-  await call(member, 'team_accept', acceptance);
-  await call(member, 'team_accept', acceptance);
-  assert.equal((await call(member, 'business_get', { business_id: businessId })).name, plan.business_name);
-  assert.equal((await allPages(member, 'records_export', { business_id: businessId, kind: 'invoice' })).filter(i => i.status === 'issued').length, 2);
-  const editorWrite = { request_id: rid(), business_id: businessId, name: 'QA ONLY — Shared client' };
-  await rejected(member, 'client_save', editorWrite, 'FORBIDDEN');
-  await call(owner, 'team_member_set', { request_id: rid(), member_id: invitation.id, role: 'editor' });
-  await call(member, 'client_save', editorWrite);
-  await rejected(member, 'business_set', { request_id: rid(), business_id: businessId, name: 'QA forbidden owner change', currency: 'GBP' }, 'FORBIDDEN');
-  await call(owner, 'team_member_set', { request_id: rid(), member_id: invitation.id, role: 'removed' });
-  liveMember = undefined;
-  await rejected(member, 'client_save', editorWrite, 'FORBIDDEN');
-  await rejected(member, 'business_get', { business_id: businessId }, 'FORBIDDEN');
+  await rejected(member, 'client_save', { request_id: rid(), business_id: businessId, name: 'QA ONLY — Shared client' }, 'FORBIDDEN');
   assert(!(await allPages(member, 'businesses_list')).some(b => b.business_id === businessId));
-  const ownerMembership = (await allPages(owner, 'team_list')).find(m => m.role === 'owner');
-  await rejected(owner, 'team_member_set', { request_id: rid(), member_id: ownerMembership.id, role: 'removed' }, 'OWNER_REQUIRED');
-  pass('Two real identities: invitation, acceptance, viewer/editor boundaries, immediate removal, blocked replay and owner protection');
+  pass('Two real identities: no team tools, and the second identity cannot read or change the first business');
   artifacts.exports = {};
   for (const kind of ['business', 'client', 'billable', 'expense', 'invoice', 'payment', 'audit']) {
     artifacts.exports[kind] = await allPages(owner, 'records_export', { kind });
   }
-  assert.equal((await allPages(owner, 'clients_list')).length, 2);
+  assert.equal((await allPages(owner, 'clients_list')).length, 1);
   assert.equal(artifacts.exports.payment.length, 2);
   assert(artifacts.exports.audit.some(a => a.operation === 'invoice_issue'));
   assert(artifacts.exports.audit.some(a => a.operation === 'team_member_set'));

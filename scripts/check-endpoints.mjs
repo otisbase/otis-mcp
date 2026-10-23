@@ -92,13 +92,13 @@ try {
     }
     const prompts = (await client.listPrompts()).prompts;
     assert(prompts.some(p => p.name === 'otis' && p.title === 'Otis menu'));
-    const workflowNames = ['create-invoice', 'record-work', 'add-expense', 'clients', 'invoices', 'payments', 'team', 'business-settings', 'tax-settings', 'export'];
+    const workflowNames = ['create-invoice', 'record-work', 'add-expense', 'clients', 'invoices', 'payments', 'business-settings', 'tax-settings', 'export'];
     assert.deepEqual(prompts.map(p => p.name).sort(), ['otis', 'setup-business', 'invoices-and-payments', ...workflowNames].sort());
     for (const prompt of prompts) {
       const messages = (await client.getPrompt({ name: prompt.name })).messages;
       assert(messages.length > 0);
       if (prompt.name === 'otis') {
-        assert(messages[0].content.text.includes('10. Export'));
+        assert(messages[0].content.text.includes('9. Export'));
         assert(messages[0].content.text.includes('Sample demo'));
       }
       if (workflowNames.includes(prompt.name)) {
