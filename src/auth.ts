@@ -177,6 +177,12 @@ export async function authorize(request: Request, env: Env): Promise<Response> {
       && await eu(env.SIGN_INS).getByName(`email-day:${emailId}`).allow(20, 86_400_000);
     const ipAllowed = await eu(env.SIGN_INS).getByName(`ip:${ipId}`).allow(20, 3_600_000);
     if (!allowed || !ipAllowed) return page("Try later", heading("Too many attempts.", "Wait an hour, then try again."), 429, { "Retry-After": "3600" });
+    // Directory reviewers cannot read an inbox: the one REVIEW_EMAIL address takes the fixed REVIEW_CODE secret
+    // instead of an emailed code, under the same guess limits. Both are secrets; deleting either switches it off.
+    if (env.REVIEW_EMAIL && env.REVIEW_CODE && email === env.REVIEW_EMAIL.toLowerCase()) {
+      if (!await store.setCode(cookieHash, csrf, email, await digest(`${id}:${env.REVIEW_CODE}`))) return expired();
+      return page("Verify email", verifyForm(id, csrf, email, flow.clientName), 200, undefined, new URL(flow.request.redirectUri));
+    }
     // One cap on all code emails, so no spread of addresses can turn sign-in into a mailer.
     if (!await eu(env.SIGN_INS).getByName("send:all").allow(SIGN_IN_EMAILS_PER_HOUR, 3_600_000)) {
       return page("Email unavailable", heading("We couldn’t send your code.", "Try again in a few minutes."), 503, { "Retry-After": "600" });

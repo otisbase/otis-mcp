@@ -40,7 +40,10 @@ describe("all private MCP tools through the authenticated transport", () => {
     };
     try {
       expect((await a.client.listTools()).tools.map(t => t.name).sort()).toEqual(Object.keys(schemas).sort());
-      for (const tool of (await a.client.listTools()).tools) expect(tool.annotations?.readOnlyHint).toBe(READ_OPERATIONS.has(tool.name as Operation));
+      for (const tool of (await a.client.listTools()).tools) {
+        expect(tool.annotations?.readOnlyHint).toBe(READ_OPERATIONS.has(tool.name as Operation));
+        expect(tool.title).toBeTruthy();
+      }
       expect((await call("otis_menu")).options).toHaveLength(9);
       await call("businesses_list");
       expect((await call("business_get")).setup_required).toBe(true);

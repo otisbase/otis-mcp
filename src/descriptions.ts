@@ -32,3 +32,36 @@ export const descriptions: Record<Operation, string> = {
   records_export: "Export business records and audit history as paginated JSON. Follow next_offset until null. Viewers can read/export.",
   feedback_send: "Send feedback to the Otis team: a feature request, a problem or anything else. Offer it when the user wants something Otis cannot do, asks for a feature or hits a problem; never send unprompted. Show the exact message and send only after the user approves it. Ask before setting reply_ok, which shares their verified email for a reply. Sends only the message, kind and client; never business records or chat history. Limit 20 a day per person; any role can send."
 };
+
+/** One short title per MCP tool, shown by clients in place of the tool name and required for the Claude connector directory. */
+export const titles: Record<Operation, string> = {
+  otis_menu: "Show the Otis menu",
+  businesses_list: "List businesses",
+  business_get: "Get business details",
+  business_set: "Update business details",
+  tax_profile_set: "Set tax profile",
+  tax_guide: "Read tax setup guidance",
+  team_list: "List team members",
+  team_invite: "Invite a team member",
+  team_accept: "Accept a team invitation",
+  team_member_set: "Change a team member",
+  clients_list: "List clients",
+  client_save: "Save a client",
+  billable_record: "Record billable work",
+  billables_list: "List billable work",
+  timer_start: "Start a timer",
+  timer_stop: "Stop a timer",
+  timers_list: "List timers",
+  expense_record: "Record an expense",
+  expenses_list: "List expenses",
+  invoice_draft: "Draft an invoice",
+  invoice_get: "Get an invoice",
+  invoice_check: "Check invoice readiness",
+  invoices_list: "List invoices",
+  invoice_issue: "Issue an invoice",
+  invoice_cancel_draft: "Cancel an invoice draft",
+  payment_record: "Record a payment",
+  payments_list: "List payments",
+  records_export: "Export all records",
+  feedback_send: "Send feedback to Otis",
+};

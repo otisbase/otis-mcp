@@ -12,7 +12,7 @@ import { otisMenu, menuInstructions } from "./menu";
 import { workflows, workflowText } from "./workflows";
 import { sendFeedback } from "./feedback";
 import { z } from "zod";
-import { descriptions } from "./descriptions";
+import { descriptions, titles } from "./descriptions";
 
 export async function privateOperation(env: Env, identity: Identity, operation: Operation, input: unknown): Promise<DomainResult> {
   const parsed = schemas[operation].parse(input);
@@ -78,7 +78,7 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
     for (const operation of offeredOperations(teamEnabled(env))) {
       if (demo && (!READ_OPERATIONS.has(operation) || ["businesses_list", "team_list"].includes(operation))) continue;
       server.registerTool(operation, {
-        description: descriptions[operation], inputSchema: schemas[operation].shape,
+        title: titles[operation], description: descriptions[operation], inputSchema: schemas[operation].shape,
         annotations: { readOnlyHint: READ_OPERATIONS.has(operation), destructiveHint: !READ_OPERATIONS.has(operation) && operation !== "feedback_send", idempotentHint: true, openWorldHint: operation === "feedback_send" }
       }, async (input: unknown) => {
         try {
