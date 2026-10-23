@@ -7,8 +7,9 @@ import { workflows, workflowText } from '../src/workflows.ts';
 const root = fileURLToPath(new URL('../plugins/', import.meta.url));
 const check = process.argv.includes('--check');
 const origin = 'https://mcp.otisbase.com';
-const version = '0.2.1';
+const version = '0.3.0';
 const description = 'Free business records through your AI: clients, work, expenses, invoices, payments, team, business settings, tax settings and export.';
+const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 const json = value => JSON.stringify(value, null, 2) + '\n';
 const skill = (name, description, body) => `---\nname: ${name}\ndescription: ${JSON.stringify(description)}\n---\n\n${body}\n`;
 const expected = new Map();
@@ -64,7 +65,7 @@ for (const host of ['codex', 'claude']) {
     ? 'In Claude Code, install it from the Otis marketplace in one step with `/plugin install otis --marketplace otisbase/otis-plugins`, or run `claude plugin marketplace add otisbase/otis-plugins` and then `claude plugin install otis@otis`. In Claude chat or Cowork, upload the release ZIP through Customize > Plugins > Add > Upload plugin. Then connect its remote connector and finish email-code sign-in. Use `/otis:menu`, `/otis:create-invoice`, or the other skills from the slash picker.'
     : 'This package uses the supported `.codex-plugin/plugin.json` compatibility format. Add the Otis marketplace with `codex plugin marketplace add otisbase/otis-plugins`, install with `codex plugin add otis@otis` (or from `codex /plugins` or the ChatGPT desktop app’s Plugins tab), then connect its remote MCP and finish email-code sign-in. Start a new session, then select a bundled skill from the picker or use a `$` skill mention such as `$otis:create-invoice` when that qualified name is shown by the host.';
   const body = [`# Otis for ${host === 'claude' ? 'Claude' : 'Codex'}`, '', description, '',
-    'The package contains one menu skill, ten independent workflow skills, and a remote MCP connection. It runs no local backend, model inference, hooks or shell scripts. Business records remain in the existing Cloudflare service. Authentication and permissions are enforced by that service.', '', usage, '',
+    `The package contains one menu skill, ${words[workflows.length]} independent workflow skills, and a remote MCP connection. It runs no local backend, model inference, hooks or shell scripts. Business records remain in the existing Cloudflare service. Authentication and permissions are enforced by that service.`, '', usage, '',
     'Use a single intended Otis connection in each client. If you already connected Otis directly, inspect that connection before enabling another copy; do not silently remove user configuration. Plugin and MCP namespaces can differ. Refresh the host after an update.', '',
     '| Skill | Purpose |', '| --- | --- |', '| menu | Open the menu |',
     ...workflows.map(w => `| ${w.name} | ${w.label} |`), '',
@@ -92,7 +93,7 @@ expected.set('.gitignore', '*.zip\n.DS_Store\n');
 expected.set('README.md', [
   '# Otis Plugins', '', description, '',
   '[Otisbase](https://otisbase.com) is a free MCP server for client billing, built for consultants and small agencies. There is no app or dashboard: your AI assistant is the interface. You tell it what happened, it records the work, expenses and payments in Otis, and Otis issues the invoices you approve. Otis stores the records and enforces the rules, such as invoice numbering, totals and exact-total approval. Issued invoices cannot be rewritten.', '',
-  'This repository is the plugin marketplace for Otis. Each plugin bundles the remote Otis MCP connection with a menu skill and ten workflow skills, so the assistant knows how to run each job step by step. Nothing runs on your computer; records stay in the Otis service, stored in the EU on Cloudflare.', '',
+  `This repository is the plugin marketplace for Otis. Each plugin bundles the remote Otis MCP connection with a menu skill and ${words[workflows.length]} workflow skills, so the assistant knows how to run each job step by step. Nothing runs on your computer; records stay in the Otis service, stored in the EU on Cloudflare.`, '',
   '| Plugin | Folder | For |', '| --- | --- | --- |',
   '| Otis for Claude | [`claude/otis`](claude/otis) | Claude Code, Claude and Cowork |',
   '| Otis for Codex | [`codex/otis`](codex/otis) | Codex CLI and the ChatGPT desktop app |', '',
@@ -162,4 +163,4 @@ for host in ['codex', 'claude']:
             assert z.read(name) == data, 'Stale archive entry: ' + name
 print('Both ZIP archives verified against the generated package files.')
 `], { input: JSON.stringify({ root, version, files: [...expected.keys()], check }), stdio: ['pipe', 'inherit', 'inherit'] });
-console.log(`${check ? 'Verified' : 'Generated'} ${expected.size} files: two Otis packages, each with 11 skills and remote MCP configuration.`);
+console.log(`${check ? 'Verified' : 'Generated'} ${expected.size} files: two Otis packages, each with ${workflows.length + 1} skills and remote MCP configuration.`);

@@ -7,7 +7,7 @@ export function otisMenu(demo: boolean, origin: string) {
     tools: demo ? choice.demoTools : choice.tools, steps: demo ? choice.demoSteps : choice.steps
   }));
   const text = ["Otis — what would you like to do?", "",
-    ...(demo ? ["Sample demo: explore fictional records. Saving records and team access require the private connection.", ""] : []),
+    ...(demo ? ["Sample demo: explore fictional records. Saving records requires the private connection.", ""] : []),
     ...options.map(option => `${option.number}. ${option.label}${demo ? option.tools.length ? " (sample preview)" : " (connect to use)" : ""}`),
     "", "Reply with a number, name an option, or describe what you need."
   ].join("\n");
@@ -15,8 +15,8 @@ export function otisMenu(demo: boolean, origin: string) {
     "Show the menu as a short numbered list in the conversation, then wait for the user's choice. Showing this menu does not authorize any business action.",
     "Use the selected option's tools only after the user chooses a task. Ask only for missing facts; never invent prices, payments, tax treatment or consent.",
     demo
-      ? `Only read fictional sample data. Never ask for real business inputs to save in the demo. For saving or team access, explain how to connect ${origin}/mcp; reading a website does not install it.`
-      : "Before a business task, use businesses_list to discover current access and invitations. Preserve an explicitly selected business; ask which one if ambiguous. Pass its business_id on subsequent calls. Use business_get to find missing setup. Viewers can read/export; only owners manage team and business/tax settings. Do not imply an invitation has been accepted or access granted.",
+      ? `Only read fictional sample data. Never ask for real business inputs to save in the demo. For saving, explain how to connect ${origin}/mcp; reading a website does not install it.`
+      : "Before a business task, use businesses_list to find the business. Use business_get to find missing setup. Team access is not available: each business is used by its owner.",
     "Read otis://docs/workflows for the selected workflow. For invoices, inspect remaining_minor, establish tax treatment, call invoice_check, resolve blockers, and obtain approval of the exact draft and total before invoice_issue. Issuance does not send an invoice.",
     "Users can ask 'show Otis menu' at any time. A host may expose the otis prompt as /otis, a namespaced command or a prompt picker; do not promise a particular slash-command UI."
   ];

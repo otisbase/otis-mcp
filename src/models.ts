@@ -129,10 +129,21 @@ export type Timer = {
 };
 export type Payment = { id: string; invoice_id: string; amount_minor: number; currency: string; received_on: string; reference: string };
 export type Member = { id: string; user_id: string; role: "owner" | "editor" | "viewer"; status: "active" | "invited" | "removed"; invitation_id?: string; expires_at?: number; email?: string };
-export type Actor = { userId: string; home: boolean; inviteeId?: string };
+export type Actor = { userId: string; home: boolean; inviteeId?: string; team?: boolean };
 export type Blocker = { field: string; message: string; next_tool: string };
 export type JsonValue = null | boolean | number | string | readonly JsonValue[] | { [key: string]: JsonValue | undefined };
 export type DomainResult = { ok: true; data: JsonValue } | { ok: false; code: string; message: string; details?: JsonValue };
+/**
+ * Team sharing (invitations, roles, shared businesses) is switched off and kept for a possible Pro plan
+ * (Stefan, 2026-10-23). With TEAM_ENABLED other than "true", the MCP offers none of these tools and every
+ * business is reachable by its owner only. The membership model stays in place.
+ */
+export const TEAM_OPERATIONS: ReadonlySet<Operation> = new Set<Operation>(["team_list", "team_invite", "team_accept", "team_member_set"]);
+export const teamEnabled = (env: { TEAM_ENABLED?: string }) => env.TEAM_ENABLED === "true";
+/** The tools the MCP offers: every operation, without the team tools while teams are off. */
+export function offeredOperations(team: boolean): Operation[] {
+  return (Object.keys(schemas) as Operation[]).filter(operation => team || !TEAM_OPERATIONS.has(operation));
+}
 /** Fair-use limits per business (Stefan, 2026-10-21), enforced by BusinessStore and published on /pricing. Daily limits reset at 00:00 UTC. */
 export const FAIR_USE = { requests_per_day: 10_000, new_records_per_day: 1_000, records_total: 100_000 } as const;
 /** Feedback messages per person per UTC day; separate from the business fair-use counters. */

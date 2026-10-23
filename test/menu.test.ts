@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { privateOperation } from "../src/mcp";
 import { connected, localFetch, origin } from "./auth-fixture";
 
-const labels = ["Create invoice", "Record work", "Add expense", "Clients", "Invoices", "Payments", "Team", "Business settings", "Tax settings", "Export"];
-const names = ["create-invoice", "record-work", "add-expense", "clients", "invoices", "payments", "team", "business-settings", "tax-settings", "export"];
+const labels = ["Create invoice", "Record work", "Add expense", "Clients", "Invoices", "Payments", "Business settings", "Tax settings", "Export"];
+const names = ["create-invoice", "record-work", "add-expense", "clients", "invoices", "payments", "business-settings", "tax-settings", "export"];
 
 describe("Otis conversational menu", () => {
   it.each([false, true])("discovers the prompt and tool with matching choices (demo=%s)", async demo => {
@@ -25,7 +25,7 @@ describe("Otis conversational menu", () => {
       expect(menu.connection_url).toBe(`${origin}/mcp`);
       expect(menu.options.map((option: any) => option.label)).toEqual(labels);
       expect(menu.options.map((option: any) => option.prompt_name)).toEqual(names);
-      expect(menu.options.map((option: any) => option.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      expect(menu.options.map((option: any) => option.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
       expect(menu.text).not.toContain("&");
       expect(menu.options.find((option: any) => option.prompt_name === "invoices").tools).not.toContain("payment_record");
       expect(menu.options.find((option: any) => option.prompt_name === "business-settings").tools).not.toContain("tax_profile_set");
@@ -45,7 +45,6 @@ describe("Otis conversational menu", () => {
         if (demo) {
           expect(instructions).toContain("read-only fictional sample demo");
           expect(instructions).toContain("Do not collect real inputs to save here");
-          if (option.prompt_name === "team") expect(instructions).toContain("none — connection guidance only");
         } else {
           expect(instructions).toContain("businesses_list");
           expect(instructions).toContain("owner/editor/viewer permissions");
@@ -62,12 +61,12 @@ describe("Otis conversational menu", () => {
       expect(text).toContain("approval of the exact draft and total");
       if (demo) {
         expect(text).toContain("fictional records");
-        expect(text).toContain("Team (connect to use)");
+        expect(text).not.toContain("Team");
         expect(text).toContain("Never ask for real business inputs to save in the demo");
       } else {
         expect(text).not.toContain("sample preview");
-        expect(text).toContain("ask which one if ambiguous");
-        expect(text).toContain("Viewers can read/export");
+        expect(text).toContain("Team access is not available");
+        expect(text).not.toContain("Viewers can read/export");
         expect((await client.callTool({ name: "business_get", arguments: {} })).structuredContent).toMatchObject({ ok: true, data: { setup_required: true } });
       }
       expect((await client.callTool({ name: "otis_menu", arguments: {} })).structuredContent).toEqual(response.structuredContent);

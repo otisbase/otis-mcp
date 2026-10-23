@@ -4,7 +4,7 @@
 
 Otis preserves business facts across agents and conversations. The user or assistant supplies commercial inputs and tax treatment; Otis validates arithmetic and record integrity. It does not choose prices, infer tax liability, measure tokens, verify bank activity or generate documents.
 
-Business profiles, client identity/billing/tax details, team memberships, expenses, time and AI usage, invoices, reported payments and audit events are implemented. Tool schemas are authoritative for field names and limits; this document explains the intended behavior behind them.
+Business profiles, client identity/billing/tax details, memberships (owner only while teams are off), expenses, time and AI usage, invoices, reported payments and audit events are implemented. Tool schemas are authoritative for field names and limits; this document explains the intended behavior behind them.
 
 ## Money and tax
 

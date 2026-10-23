@@ -140,7 +140,7 @@ try {
   const tools = await owner.client.listTools();
   artifacts.tool_names = tools.tools.map(t => t.name);
   assert.equal(tools.tools.length, 25);
-  assert.equal((await call(owner, 'otis_menu')).options.length, 10);
+  assert.equal((await call(owner, 'otis_menu')).options.length, 9);
   assert((await owner.client.getPrompt({ name: 'otis' })).messages[0].content.text.includes('10. Export'));
   const resources = await owner.client.listResources();
   assert(resources.resources.some(r => r.uri === 'otis://docs/workflows'));

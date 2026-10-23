@@ -6,7 +6,7 @@ Otisbase is a free, headless business records service accessed through AI assist
 
 The initial audience is independent consultants and small agencies, initially oriented toward the US market. Their central workflow is to record work and expenses, identify unbilled items, issue invoices, and track payments.
 
-Team sharing, taxes, discounts and partial billing belong to the initial product and are documented from day one, even when discovery copy emphasizes the simpler workflow.
+Taxes, discounts and partial billing belong to the initial product and are documented from day one, even when discovery copy emphasizes the simpler workflow.
 
 The audience focus does not add a general accounting suite or remove the agreed record types below.
 
@@ -39,7 +39,7 @@ The assistant or user supplies prices, rates, amounts, estimates, usage, and cos
 | Area | Persistent business information |
 | --- | --- |
 | Business identity | Company identity, address, billing details, currency, invoice preferences, and numbering configuration |
-| Team access | Verified identities, owner/editor/viewer roles, invitations and current permissions |
+| Team access | Switched off (Stefan, 2026-10-23): one owner per business. The roles, invitations and membership checks stay in the code behind `TEAM_ENABLED` for a possible Pro plan. ⚠️ UNRESOLVED: whether, when and on what terms team access returns as a Pro feature. |
 | Clients | Identity, billing details, and relationships to invoices and billable records |
 | Tax and discounts | Confirmed tax profiles, explicit line treatments/components, line/invoice discounts and recorded calculations |
 | Invoices | Stable identifiers, sequential invoice numbers, metadata, structured issued contents, status, references, and balances |

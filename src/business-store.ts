@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { z } from "zod";
-import { schemas, READ_OPERATIONS, FAIR_USE, canonical, DomainError, fail,
+import { schemas, READ_OPERATIONS, FAIR_USE, TEAM_OPERATIONS, canonical, DomainError, fail,
   type Operation, type Business, type ClientRecord, type Billable, type DomainResult, type Invoice, type Payment, type Actor, type Member, type Expense, type Timer } from "./models";
 import { calculate, round, taxBlockers } from "./billing";
 
@@ -52,6 +52,11 @@ export class BusinessStore extends DurableObject<Env> {
     if (!actor?.userId) fail("FORBIDDEN", "An authenticated identity is required.");
     const business = this.optional<Business>("business", "business");
     const member = this.membership(actor.userId);
+    // Teams off: no team operations, and only the owner reaches the business (shared access is cut off).
+    if (!actor.team) {
+      if (TEAM_OPERATIONS.has(operation)) fail("NOT_AVAILABLE", "Team access is not available.");
+      if (member && member.role !== "owner") fail("FORBIDDEN", "Shared access to this business is not available.");
+    }
     if (!business && actor.home && ["business_get", "business_set"].includes(operation)) return;
     if (operation === "team_accept" && member && ["invited", "active"].includes(member.status)) return;
     if (!member || member.status !== "active") fail("FORBIDDEN", "You do not have access to this business. Ask its owner for an invitation.");

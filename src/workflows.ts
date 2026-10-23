@@ -50,12 +50,6 @@ export const workflows: Workflow[] = [
     demoSteps: ["Read fictional sample payments and their invoices, then explain recorded paid and outstanding balances. Do not record a payment or imply bank verification."]
   },
   {
-    name: "team", label: "Team", description: "Review Otis invitations and team access; owners can invite or change editor/viewer membership.",
-    tools: ["businesses_list", "team_list", "team_accept", "team_invite", "team_member_set"], demoTools: [],
-    steps: ["Use businesses_list to distinguish pending invitations from active access. Ask which invitation to accept if needed, then use its business_id and invitation_id with team_accept only when the user requests acceptance.", "For an active business, read team_list. Only owners can invite or change membership. Confirm the exact person and editor/viewer role or removal before writing; the owner cannot be removed or downgraded.", "Invitations last seven days and are discovered through MCP. No invitation email is sent. Explain how the recipient connects using the invited email and accepts; do not claim delivery or accepted access before it occurs."],
-    demoSteps: ["Explain owner/editor/viewer roles and invitation acceptance. Team records are not exposed in the sample demo. Offer the private MCP connection without creating or sending an invitation."]
-  },
-  {
     name: "business-settings", label: "Business settings", description: "Review or set up Otis business identity, currency and invoice preferences; only owners can save changes.",
     tools: ["business_get", "business_set"], demoTools: ["business_get"],
     steps: ["Read business_get and ask only for missing or explicitly changed facts: business name, currency, billing address and invoice preferences. Show the profile before saving with business_set. Preserve existing values; currency locks after financial records and the starting number locks after first issuance. Only owners can save changes.", "Keep tax registration and treatment in the separate tax-settings workflow. Do not infer tax facts from currency or imply business setup completes tax setup."],
@@ -88,3 +82,11 @@ export function workflowText(workflow: Workflow, demo: boolean, origin: string):
     "", "Stay within the requested workflow. A command starts guided work; it does not approve unspecified writes or invoice issuance. Show the recorded result and any remaining steps."
   ].join("\n");
 }
+
+/** The Team workflow, kept for a possible Pro plan; not in the menu or the plugins while teams are off (see TEAM_OPERATIONS). */
+export const teamWorkflow: Workflow = {
+    name: "team", label: "Team", description: "Review Otis invitations and team access; owners can invite or change editor/viewer membership.",
+    tools: ["businesses_list", "team_list", "team_accept", "team_invite", "team_member_set"], demoTools: [],
+    steps: ["Use businesses_list to distinguish pending invitations from active access. Ask which invitation to accept if needed, then use its business_id and invitation_id with team_accept only when the user requests acceptance.", "For an active business, read team_list. Only owners can invite or change membership. Confirm the exact person and editor/viewer role or removal before writing; the owner cannot be removed or downgraded.", "Invitations last seven days and are discovered through MCP. No invitation email is sent. Explain how the recipient connects using the invited email and accepts; do not claim delivery or accepted access before it occurs."],
+    demoSteps: ["Explain owner/editor/viewer roles and invitation acceptance. Team records are not exposed in the sample demo. Offer the private MCP connection without creating or sending an invitation."]
+  };

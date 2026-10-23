@@ -74,7 +74,7 @@ try {
       if (tool.name === 'otis_menu') {
         const menu = result.structuredContent.data;
         assert.equal(menu.demo, true);
-        assert.equal(menu.options.length, 10);
+        assert.equal(menu.options.length, 9);
         assert(!menu.text.includes('&'));
         assert.equal(menu.connection_url, `${origin}/mcp`);
         assert(menu.text.includes('Sample demo'));

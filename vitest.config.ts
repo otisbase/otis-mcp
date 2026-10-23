@@ -10,6 +10,8 @@ export default defineConfig({
           ORIGIN: "https://otis.test",
           SITE_ORIGIN: "https://site.otis.test",
           SIGN_IN_ENABLED: "false",
+          // The team logic stays tested; test/team-off.test.ts covers production, where teams are off.
+          TEAM_ENABLED: "true",
           // workerd does not implement Durable Object jurisdictions; production uses "eu".
           DO_JURISDICTION: "local"
         }

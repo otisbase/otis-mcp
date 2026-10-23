@@ -13,9 +13,9 @@ export function localFetch(bindings: Env = env) {
     return worker.fetch(request as Parameters<typeof worker.fetch>[0], bindings, createExecutionContext());
   };
 }
-export async function authFlow(options: { email?: string; failEmail?: boolean; redirect?: string; scope?: string } = {}) {
+export async function authFlow(options: { email?: string; failEmail?: boolean; redirect?: string; scope?: string; bindings?: Partial<Env> } = {}) {
   const deliveries: { to: string; text: string }[] = [];
-  const bindings: Env = { ...env, SIGN_IN_ENABLED: "true", EMAIL: { send: async (message: unknown) => {
+  const bindings: Env = { ...env, ...options.bindings, SIGN_IN_ENABLED: "true", EMAIL: { send: async (message: unknown) => {
     if (options.failEmail) throw new Error("Simulated email outage");
     deliveries.push(message as { to: string; text: string });
     return { messageId: "local-only" };
@@ -64,8 +64,8 @@ export async function authFlow(options: { email?: string; failEmail?: boolean; r
   };
   return { fetcher, bindings, deliveries, parameters, response, flow, csrf, cookie, ip, client_id, post, send, code, tokenRequest, exchange, authorize };
 }
-export async function connected(email?: string) {
-  const flow = await authFlow({ email });
+export async function connected(email?: string, bindings?: Partial<Env>) {
+  const flow = await authFlow({ email, bindings });
   const response = await flow.exchange(await flow.authorize());
   expect(response.status).toBe(200);
   const tokens = await response.json() as { access_token: string; refresh_token: string };

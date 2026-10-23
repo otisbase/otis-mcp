@@ -2,8 +2,8 @@ import type { Operation } from "./models";
 
 /** One description per MCP tool: the server registers them, and the website's Docs page lists their first sentence. */
 export const descriptions: Record<Operation, string> = {
-  otis_menu: "Show the Otis chat menu for /otis, 'show Otis menu', or getting started. Returns ten independent actions with mapped tools and workflow guidance without reading or changing business records. Wait for the user's choice.",
-  businesses_list: "Discover your own business and invitations/shared businesses. Check access status, then pass business_id on subsequent tools.",
+  otis_menu: "Show the Otis chat menu for /otis, 'show Otis menu', or getting started. Returns nine independent actions with mapped tools and workflow guidance without reading or changing business records. Wait for the user's choice.",
+  businesses_list: "Find your business and its business_id. Omit business_id on other tools to use your own business.",
   business_get: "Read business identity, currency and tax profile, or the next setup step.",
   business_set: "Owner: create or replace business name, currency and address using confirmed facts. Preserves tax profile and omitted invoice preferences. Supports invoice prefix, number padding, starting number, default note and payment instructions. Starting number locks after first issuance; currency locks after financial records exist.",
   tax_profile_set: "Owner: record confirmed country, region, registrations and effective dates. Read tax_guide first; unknown is not the same as not registered.",
