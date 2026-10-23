@@ -10,6 +10,7 @@
 /site/dist/
 /site/.wrangler/
 .DS_Store
+/site/node_modules/
 
 # Local QA output and generated plugin packages.
 /reports/

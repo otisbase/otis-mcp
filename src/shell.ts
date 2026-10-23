@@ -22,7 +22,6 @@ export const shellStyles = String.raw`@font-face { font-family: "Geist"; src: ur
   --on-primary: #fafafa;
   --soft: #e7e7e7;
   --link: #2a43ee;
-  --brand: #396d7c;
   --wordmark-base: #656565;
   --blue: #2f4bff;
   --ok: #16834a;
@@ -95,7 +94,6 @@ export const shellStyles = String.raw`@font-face { font-family: "Geist"; src: ur
   --on-primary: #121212;
   --soft: #2a2a2a;
   --link: #93a4ff;
-  --brand: #74a9b8;
   --wordmark-base: #a3a3a3;
   --wash-base: #1a1a1a;
   --wash-mix: 20%;
@@ -136,7 +134,6 @@ export const shellStyles = String.raw`@font-face { font-family: "Geist"; src: ur
   --on-primary: #121212;
   --soft: #2a2a2a;
   --link: #93a4ff;
-  --brand: #74a9b8;
   --wordmark-base: #a3a3a3;
   --wash-base: #1a1a1a;
   --wash-mix: 20%;
