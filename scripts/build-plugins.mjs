@@ -7,7 +7,7 @@ import { workflows, workflowText } from '../src/workflows.ts';
 const root = fileURLToPath(new URL('../plugins/', import.meta.url));
 const check = process.argv.includes('--check');
 const origin = 'https://mcp.otisbase.com';
-const version = '0.3.0';
+const version = '0.3.1';
 const description = 'Free business records through your AI: clients, work, expenses, invoices, payments, team, business settings, tax settings and export.';
 const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 const json = value => JSON.stringify(value, null, 2) + '\n';

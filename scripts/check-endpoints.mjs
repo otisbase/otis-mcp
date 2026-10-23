@@ -66,7 +66,7 @@ try {
     assert(tools.some(t => t.name === 'timers_list'));
     assert(client.getInstructions().includes('otis_menu'));
     for (const tool of tools) {
-      const args = tool.name === 'records_export' ? { kind: 'business' } : tool.name.startsWith('invoice_') ? { invoice_id: 'sample-invoice' } : {};
+      const args = tool.name === 'records_export' ? { kind: 'business' } : tool.name.startsWith('invoice_') ? { invoice_id: 'invoice-1041' } : {};
       const result = await client.callTool({ name: tool.name, arguments: args });
       assert.notEqual(result.isError, true, tool.name);
       assert.equal(result.structuredContent.ok, true);
@@ -77,7 +77,7 @@ try {
         assert.equal(menu.options.length, 9);
         assert(!menu.text.includes('&'));
         assert.equal(menu.connection_url, `${origin}/mcp`);
-        assert(menu.text.includes('Sample demo'));
+        assert(menu.text.includes('Demo account'));
         for (const option of menu.options) for (const name of option.tools) assert(tools.some(t => t.name === name));
       }
       checks.push({ label: `Demo tool ${tool.name}`, passed: true });
@@ -99,10 +99,10 @@ try {
       assert(messages.length > 0);
       if (prompt.name === 'otis') {
         assert(messages[0].content.text.includes('9. Export'));
-        assert(messages[0].content.text.includes('Sample demo'));
+        assert(messages[0].content.text.includes('Demo account'));
       }
       if (workflowNames.includes(prompt.name)) {
-        assert(messages[0].content.text.includes('read-only fictional sample demo'));
+        assert(messages[0].content.text.includes('read-only demo account'));
         assert(messages[0].content.text.includes('does not approve unspecified writes or invoice issuance'));
       }
       checks.push({ label: `Prompt ${prompt.name}`, passed: true });

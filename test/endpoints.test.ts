@@ -106,7 +106,7 @@ describe("sample MCP contract", () => {
       const tools = (await client.listTools()).tools;
       expect(tools.map(t => t.name).sort()).toEqual([...READ_OPERATIONS].filter(n => !["businesses_list", "team_list"].includes(n)).sort());
       for (const tool of tools) {
-        const args = tool.name === "records_export" ? { kind: "business" } : tool.name.startsWith("invoice_") ? { invoice_id: "sample-invoice" } : {};
+        const args = tool.name === "records_export" ? { kind: "business" } : tool.name.startsWith("invoice_") ? { invoice_id: "invoice-1041" } : {};
         const result = await client.callTool({ name: tool.name, arguments: args });
         expect(result.isError, tool.name).not.toBe(true);
         expect(result.structuredContent, tool.name).toMatchObject({ ok: true });

@@ -100,7 +100,7 @@ describe("public MCP and access control", () => {
       const tools = await client.listTools();
       expect(tools.tools.map((t) => t.name)).toContain("billables_list");
       expect(tools.tools.map((t) => t.name)).not.toContain("billable_record");
-      const result = await client.callTool({ name: "billables_list", arguments: { state: "unbilled" } });
+      const result = await client.callTool({ name: "billables_list", arguments: { state: "unbilled", client_id: "fernhill-coffee" } });
       expect(result.isError).not.toBe(true);
       expect(result.structuredContent).toMatchObject({ demo: true, ok: true });
       const entries = (result.structuredContent as { data: { records: { amount_minor: number }[] } }).data.records;

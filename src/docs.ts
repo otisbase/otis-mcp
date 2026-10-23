@@ -78,7 +78,7 @@ Useful errors: FORBIDDEN (ask the owner); ALLOCATION_CONFLICT (reload remaining 
 
 ## Send feedback to the Otis team
 
-feedback_send emails a feature request, a problem report or other feedback to the Otis team and saves a copy. Offer it when the user wants something Otis cannot do, asks for a feature or hits a problem; never send it unprompted. Draft the message with the user, show the exact text, and send only after they approve it. Ask separately before setting reply_ok: only then is their verified email included so the team can reply. Otherwise the team cannot answer. The message, its kind and the optional client name are all that is sent; never include business records, chat history or anything the user did not write or approve. Any signed-in person can send, whatever their role, and feedback does not count toward business fair-use limits. Each person can send ${FEEDBACK_PER_DAY} a day; FEEDBACK_LIMIT names resets_at (00:00 UTC). The result reports delivery honestly: a failed email keeps the saved copy, and retrying with the same request_id tries the email again without counting twice. The public sample does not offer this tool.
+feedback_send emails a feature request, a problem report or other feedback to the Otis team and saves a copy. Offer it when the user wants something Otis cannot do, asks for a feature or hits a problem; never send it unprompted. Draft the message with the user, show the exact text, and send only after they approve it. Ask separately before setting reply_ok: only then is their verified email included so the team can reply. Otherwise the team cannot answer. The message, its kind and the optional client name are all that is sent; never include business records, chat history or anything the user did not write or approve. Any signed-in person can send, whatever their role, and feedback does not count toward business fair-use limits. Each person can send ${FEEDBACK_PER_DAY} a day; FEEDBACK_LIMIT names resets_at (00:00 UTC). The result reports delivery honestly: a failed email keeps the saved copy, and retrying with the same request_id tries the email again without counting twice. The demo account does not offer this tool.
 
 ## Safety
 
@@ -98,9 +98,9 @@ Otis runs no model inference. Your AI client supplies the intelligence and gener
 
 ## Explore without an account
 Remote MCP (Streamable HTTP): ${env.ORIGIN}/demo/mcp
-This read-only demo contains fictional sample data, labelled in every response.
+This read-only demo account is Northstar Studio, a fictional consultancy with four clients, three months of work, expenses, timers, invoices and payments. Every response says it is the demo.
 It accepts no real business records and creates no account.
-Try business_get, clients_list, billables_list with state=unbilled, and invoice_get for sample-invoice.
+Try business_get, clients_list, billables_list with state=unbilled, timers_list, invoices_list and invoice_get for invoice-1041.
 
 ## Connect your business
 Remote MCP (Streamable HTTP): ${env.ORIGIN}/mcp

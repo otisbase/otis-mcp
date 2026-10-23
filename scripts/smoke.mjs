@@ -26,7 +26,7 @@ try {
   const result = await client.callTool({ name: 'billables_list', arguments: { state: 'unbilled' } });
   assert.equal(result.structuredContent.demo, true);
   assert.equal(result.structuredContent.ok, true);
-  const invoice = await client.callTool({ name: 'invoice_get', arguments: { invoice_id: 'sample-invoice' } });
+  const invoice = await client.callTool({ name: 'invoice_get', arguments: { invoice_id: 'invoice-1041' } });
   assert.equal(invoice.structuredContent.data.balance_minor, 60000);
   const guide = await client.callTool({ name: 'tax_guide', arguments: { country: 'GB' } });
   assert.equal(guide.structuredContent.data.guidance.title, 'United Kingdom');
@@ -36,5 +36,5 @@ try {
   assert(resource.contents[0].text.includes('Canada'));
   const prompt = await client.getPrompt({ name: 'setup-business' });
   assert(prompt.messages.length > 0);
-  console.log(`PASS real MCP client: ${tools.length} public tools, sample reads, tax guide, resources and setup prompt`);
+  console.log(`PASS real MCP client: ${tools.length} public tools, demo reads, tax guide, resources and setup prompt`);
 } finally { await client.close(); }

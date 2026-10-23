@@ -43,11 +43,11 @@ describe("Otis conversational menu", () => {
         for (const step of option.steps) expect(instructions).toContain(step);
         for (const tool of option.tools) expect(instructions).toContain(tool);
         if (demo) {
-          expect(instructions).toContain("read-only fictional sample demo");
+          expect(instructions).toContain("read-only demo account");
           expect(instructions).toContain("Do not collect real inputs to save here");
         } else {
           expect(instructions).toContain("businesses_list");
-          expect(instructions).toContain("owner/editor/viewer permissions");
+          expect(instructions).toContain("Team access is not available");
           if (option.prompt_name === "create-invoice") expect(instructions).toContain("A create-invoice command is not approval to issue");
         }
       }
@@ -64,7 +64,7 @@ describe("Otis conversational menu", () => {
         expect(text).not.toContain("Team");
         expect(text).toContain("Never ask for real business inputs to save in the demo");
       } else {
-        expect(text).not.toContain("sample preview");
+        expect(text).not.toContain("(demo)");
         expect(text).toContain("Team access is not available");
         expect(text).not.toContain("Viewers can read/export");
         expect((await client.callTool({ name: "business_get", arguments: {} })).structuredContent).toMatchObject({ ok: true, data: { setup_required: true } });

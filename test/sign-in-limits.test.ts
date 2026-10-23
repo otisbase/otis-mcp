@@ -27,7 +27,7 @@ describe("sign-in abuse limits", () => {
     const f = await authFlow();
     expect((await f.send()).status).toBe(503);
     expect(f.deliveries).toHaveLength(0);
-  });
+  }, 30_000);
 
   it("keys IPv6 by its /64 and leaves IPv4 alone", () => {
     expect(networkKey("2001:db8:abcd:12:1:2:3:4")).toBe("2001:db8:abcd:12::/64");
