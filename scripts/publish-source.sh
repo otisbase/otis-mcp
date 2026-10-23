@@ -14,7 +14,7 @@ repo="otisbase/otis-mcp"
 description="Otis MCP: the open-source MCP server behind Otisbase, free client billing for AI assistants"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 message="${1:-Update Otis source}"
-include=(src test scripts spec/01-README.md spec/02-product.md spec/03-records-and-billing.md spec/04-service.md spec/05-tax-guidance.md package.json package-lock.json tsconfig.json vitest.config.ts wrangler.jsonc worker-configuration.d.ts .gitignore)
+include=(src test scripts server.json spec/01-README.md spec/02-product.md spec/03-records-and-billing.md spec/04-service.md spec/05-tax-guidance.md package.json package-lock.json tsconfig.json vitest.config.ts wrangler.jsonc worker-configuration.d.ts .gitignore)
 
 npm --prefix "$root" run --silent check
 npm --prefix "$root" test --silent >/dev/null

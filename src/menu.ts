@@ -16,7 +16,7 @@ export function otisMenu(demo: boolean, origin: string) {
     "Use the selected option's tools only after the user chooses a task. Ask only for missing facts; never invent prices, payments, tax treatment or consent.",
     demo
       ? `Only read the demo account's fictional records. Never ask for real business inputs to save in the demo. For saving, explain how to connect ${origin}/mcp; reading a website does not install it.`
-      : "Before a business task, use businesses_list to find the business. Use business_get to find missing setup. Team access is not available: each business is used by its owner.",
+      : "Before a business task, use businesses_list to find the business. Use business_get to find missing setup.",
     "Read otis://docs/workflows for the selected workflow. For invoices, inspect remaining_minor, establish tax treatment, call invoice_check, resolve blockers, and obtain approval of the exact draft and total before invoice_issue. Issuance does not send an invoice.",
     "Users can ask 'show Otis menu' at any time. A host may expose the otis prompt as /otis, a namespaced command or a prompt picker; do not promise a particular slash-command UI."
   ];

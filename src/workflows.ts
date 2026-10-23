@@ -75,7 +75,7 @@ export function workflowText(workflow: Workflow, demo: boolean, origin: string):
     demo
       ? `This is the read-only demo account, Northstar Studio, with fictional records. Use only the listed demo tools. For real records and saving, the user must connect ${origin}/mcp. Do not collect real inputs to save here.`
       : `Use the connected Otis MCP at ${origin}/mcp. If its tools are unavailable, explain connection and email-code sign-in in the browser; never ask for codes in chat or simulate a successful action.`,
-    ...(!demo ? ["First find the business with businesses_list and pass its business_id on scoped calls. Read business_get for missing setup. Team access is not available: each business is used by its owner."] : []),
+    ...(!demo ? ["First find the business with businesses_list and pass its business_id on scoped calls. Read business_get for missing setup."] : []),
     "Read otis://docs/workflows when available. Ask only for missing facts. Never invent prices, payments, tax treatment or consent. Monetary values use integer currency minor units. Reuse a stable request_id for identical write retries; follow structured blockers instead of guessing.",
     `Workflow tools: ${(demo ? workflow.demoTools : workflow.tools).join(", ") || "none — connection guidance only"}.`, "",
     ...(demo ? workflow.demoSteps : workflow.steps).map((step, index) => `${index + 1}. ${step}`),

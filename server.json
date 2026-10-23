@@ -1,0 +1,26 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.otisbase/otis",
+  "title": "Otis",
+  "description": "Free client billing for AI assistants: hours, expenses, timers, invoices and payments.",
+  "version": "0.1.0",
+  "websiteUrl": "https://otisbase.com",
+  "repository": {
+    "url": "https://github.com/otisbase/otis-mcp",
+    "source": "github",
+    "id": "1430201772"
+  },
+  "icons": [
+    {
+      "src": "https://otisbase.com/apple-touch-icon.png",
+      "mimeType": "image/png",
+      "sizes": ["180x180"]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.otisbase.com/mcp"
+    }
+  ]
+}

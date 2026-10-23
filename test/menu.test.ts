@@ -47,7 +47,7 @@ describe("Otis conversational menu", () => {
           expect(instructions).toContain("Do not collect real inputs to save here");
         } else {
           expect(instructions).toContain("businesses_list");
-          expect(instructions).toContain("Team access is not available");
+          expect(instructions).toContain("First find the business with businesses_list");
           if (option.prompt_name === "create-invoice") expect(instructions).toContain("A create-invoice command is not approval to issue");
         }
       }
@@ -65,7 +65,7 @@ describe("Otis conversational menu", () => {
         expect(text).toContain("Never ask for real business inputs to save in the demo");
       } else {
         expect(text).not.toContain("(demo)");
-        expect(text).toContain("Team access is not available");
+        expect(text).toContain("use businesses_list to find the business");
         expect(text).not.toContain("Viewers can read/export");
         expect((await client.callTool({ name: "business_get", arguments: {} })).structuredContent).toMatchObject({ ok: true, data: { setup_required: true } });
       }
