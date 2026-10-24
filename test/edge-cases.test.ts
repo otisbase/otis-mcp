@@ -44,6 +44,7 @@ describe("all private MCP tools through the authenticated transport", () => {
         expect(tool.annotations?.readOnlyHint).toBe(READ_OPERATIONS.has(tool.name as Operation));
         expect(tool.title).toBeTruthy();
       }
+      for (const prompt of (await a.client.listPrompts()).prompts) expect(prompt.title, prompt.name).toBeTruthy();
       expect((await call("otis_menu")).options).toHaveLength(9);
       await call("businesses_list");
       expect((await call("business_get")).setup_required).toBe(true);

@@ -61,7 +61,7 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
     });
     server.registerResource("workflows", "otis://docs/workflows", { mimeType: "text/markdown", description: "Otis setup, billing and error workflows." }, async uri => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: operationDocs }] }));
     server.registerResource("tax-setup", "otis://docs/tax", { mimeType: "text/markdown", description: "Dated official-source guidance for US, Canada, UK and Australia. Never automatic tax determination." }, async uri => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: taxGuideMarkdown() }] }));
-    server.registerPrompt("setup-business", { description: "Guide a business through Otis setup using confirmed facts." }, async () => ({ messages: [{ role: "user" as const, content: { type: "text" as const, text: "Help me set up Otis. Read otis://docs/workflows, call business_get, and ask only for missing business facts. Read tax_guide for my country before collecting registrations. Never infer tax treatment from my currency. Show me the profile before saving it." } }] }));
+    server.registerPrompt("setup-business", { title: "Set up your business", description: "Guide a business through Otis setup using confirmed facts." }, async () => ({ messages: [{ role: "user" as const, content: { type: "text" as const, text: "Help me set up Otis. Read otis://docs/workflows, call business_get, and ask only for missing business facts. Read tax_guide for my country before collecting registrations. Never infer tax treatment from my currency. Show me the profile before saving it." } }] }));
     server.registerPrompt("otis", { title: "Otis menu", description: "Open the Otis chat menu: invoices, work, expenses, clients, payments, settings and export." }, async () => {
       const menu = otisMenu(demo, env.ORIGIN).data;
       return { messages: [{ role: "user" as const, content: { type: "text" as const, text: `Show me this Otis menu:\n\n${menu.text}\n\nGuidance for the assistant:\n${menu.guidance.join("\n")}` } }] };
@@ -72,7 +72,7 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
       }));
     }
     // Compatibility for the earlier combined prompt; keep it out of the menu and plugin skills.
-    server.registerPrompt("invoices-and-payments", { description: "Legacy shortcut. Choose the independent Invoices or Payments workflow." }, async () => ({
+    server.registerPrompt("invoices-and-payments", { title: "Invoices and payments", description: "Legacy shortcut. Choose the independent Invoices or Payments workflow." }, async () => ({
       messages: [{ role: "user" as const, content: { type: "text" as const, text: `Help me choose between the Otis invoices and payments workflows. Ask which task I need, then use its named prompt or the mapped steps from otis_menu. ${demo ? "This connection is a read-only fictional demo." : "Do not perform a write merely because I opened this shortcut."}` } }]
     }));
     for (const operation of offeredOperations(teamEnabled(env))) {
