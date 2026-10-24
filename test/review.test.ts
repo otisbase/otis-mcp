@@ -37,3 +37,16 @@ describe("directory reviewer sign-in", () => {
     expect((await off.post("/authorize/verify", { code: "482915" })).status).toBe(400);
   });
 });
+
+describe("OpenAI domain verification", () => {
+  it("serves only the token, and nothing until it is set", async () => {
+    const { localFetch, origin } = await import("./auth-fixture");
+    const { env } = await import("cloudflare:workers");
+    const path = `${origin}/.well-known/openai-apps-challenge`;
+    expect((await localFetch()(path)).status).toBe(404);
+    const response = await localFetch({ ...env, OPENAI_APPS_CHALLENGE: "token-123" })(path);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("text/plain; charset=utf-8");
+    expect(await response.text()).toBe("token-123");
+  });
+});

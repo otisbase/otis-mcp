@@ -62,6 +62,10 @@ async function route(request: Request, env: Env, ctx: ExecutionContext, url: URL
       if (!(await env.PUBLIC_REQUESTS.limit({ key })).success) return new Response("Too many requests. Try again shortly.", { status: 429, headers: { "Retry-After": "60" } });
     }
     if (url.pathname === "/health") return Response.json({ status: "ok", version: "0.1.0", sign_in_enabled: env.SIGN_IN_ENABLED === "true" });
+    // OpenAI's plugin portal proves we own the MCP host by fetching its token here, as plain text and nothing else.
+    if (url.pathname === "/.well-known/openai-apps-challenge" && env.OPENAI_APPS_CHALLENGE) {
+      return new Response(env.OPENAI_APPS_CHALLENGE, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
+    }
     const docs = docsResponse(url.pathname, env);
     if (docs) return docs;
     const asset = request.method === "GET" || request.method === "HEAD" ? shellAsset(url.pathname) : null;

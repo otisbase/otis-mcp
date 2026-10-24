@@ -4,4 +4,6 @@ interface Env {
   REVIEW_EMAIL?: string;
   /** The reviewer's fixed six-digit sign-in code. Delete either secret to switch reviewer sign-in off. */
   REVIEW_CODE?: string;
+  /** The domain-verification token from OpenAI's plugin portal, served at /.well-known/openai-apps-challenge. */
+  OPENAI_APPS_CHALLENGE?: string;
 }
