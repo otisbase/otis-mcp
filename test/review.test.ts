@@ -14,6 +14,13 @@ describe("directory reviewer sign-in", () => {
     expect(exchanged.status).toBe(200);
   });
 
+  it("lets the shared reviewer address start more sign-ins than the per-email sending limit", async () => {
+    for (let i = 0; i < 7; i++) {
+      const flow = await authFlow({ email: "review@otis.test", bindings: reviewer });
+      expect((await flow.send()).status).toBe(200);
+    }
+  });
+
   it("rejects a wrong code for the reviewer address", async () => {
     const flow = await authFlow({ email: "review@otis.test", bindings: reviewer });
     expect((await flow.send()).status).toBe(200);

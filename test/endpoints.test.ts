@@ -153,18 +153,22 @@ describe("passwordless and OAuth adversarial paths", () => {
   });
   it("enforces the email delivery window without sending real email", async () => {
     const email = `${rid()}@example.com`;
-    for (let i = 0; i < 6; i++) {
-      const f = await authFlow({ email });
-      const response = await f.send();
-      expect(response.status).toBe(i < 5 ? 200 : 429);
-      expect(f.deliveries).toHaveLength(i < 5 ? 1 : 0);
-    }
+    const { digest, CODES_PER_EMAIL_HOUR } = await import("../src/auth");
+    const first = await authFlow({ email });
+    expect((await first.send()).status).toBe(200);
+    expect(first.deliveries).toHaveLength(1);
+    // Fill the rest of the hour's window directly rather than through dozens of sign-in flows.
+    const stub = eu(env.SIGN_INS).getByName(`email:${await digest(email)}`);
+    for (let i = 1; i < CODES_PER_EMAIL_HOUR; i++) expect(await stub.allow(CODES_PER_EMAIL_HOUR, 3600000)).toBe(true);
+    const over = await authFlow({ email });
+    expect((await over.send()).status).toBe(429);
+    expect(over.deliveries).toHaveLength(0);
   });
   it("enforces the shared IP delivery window across different email identities", async () => {
     const f = await authFlow();
-    const { digest } = await import("../src/auth");
+    const { digest, CODES_PER_NETWORK_HOUR } = await import("../src/auth");
     const stub = eu(env.SIGN_INS).getByName(`ip:${await digest(f.ip)}`);
-    for (let i = 0; i < 20; i++) expect(await stub.allow(20, 3600000)).toBe(true);
+    for (let i = 0; i < CODES_PER_NETWORK_HOUR; i++) expect(await stub.allow(CODES_PER_NETWORK_HOUR, 3600000)).toBe(true);
     expect((await f.send()).status).toBe(429);
     expect(f.deliveries).toHaveLength(0);
   });

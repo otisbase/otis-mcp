@@ -11,6 +11,8 @@ import { notifyConnection } from "./notify";
 export const FAILED_CODES_PER_DAY = 10;
 /** Sign-in code emails Otis sends per hour in total. */
 export const SIGN_IN_EMAILS_PER_HOUR = 300;
+/** Code requests per email address and per network (Stefan, 2026-10-24). */
+export const CODES_PER_EMAIL_HOUR = 50, CODES_PER_EMAIL_DAY = 200, CODES_PER_NETWORK_HOUR = 50;
 
 function tooManyWrongCodes(): Response {
   return page("Try later", heading("Too many wrong codes.", "Try again tomorrow."), 429, { "Retry-After": "86400" });
@@ -173,16 +175,17 @@ export async function authorize(request: Request, env: Env): Promise<Response> {
     const emailId = await digest(email);
     const ipId = await digest(networkKey(request.headers.get("CF-Connecting-IP") ?? "local"));
     if (await eu(env.SIGN_INS).getByName(`failed:${emailId}`).blocked(FAILED_CODES_PER_DAY)) return tooManyWrongCodes();
-    const allowed = await eu(env.SIGN_INS).getByName(`email:${emailId}`).allow(5, 3_600_000)
-      && await eu(env.SIGN_INS).getByName(`email-day:${emailId}`).allow(20, 86_400_000);
-    const ipAllowed = await eu(env.SIGN_INS).getByName(`ip:${ipId}`).allow(20, 3_600_000);
-    if (!allowed || !ipAllowed) return page("Try later", heading("Too many attempts.", "Wait an hour, then try again."), 429, { "Retry-After": "3600" });
     // Directory reviewers cannot read an inbox: the one REVIEW_EMAIL address takes the fixed REVIEW_CODE secret
-    // instead of an emailed code, under the same guess limits. Both are secrets; deleting either switches it off.
+    // instead of an emailed code. It sends no email, so the sending limits below do not apply, and several reviewers
+    // share it; the guess limits do. Both are secrets; deleting either switches it off.
     if (env.REVIEW_EMAIL && env.REVIEW_CODE && email === env.REVIEW_EMAIL.toLowerCase()) {
       if (!await store.setCode(cookieHash, csrf, email, await digest(`${id}:${env.REVIEW_CODE}`))) return expired();
       return page("Verify email", verifyForm(id, csrf, email, flow.clientName), 200, undefined, new URL(flow.request.redirectUri));
     }
+    const allowed = await eu(env.SIGN_INS).getByName(`email:${emailId}`).allow(CODES_PER_EMAIL_HOUR, 3_600_000)
+      && await eu(env.SIGN_INS).getByName(`email-day:${emailId}`).allow(CODES_PER_EMAIL_DAY, 86_400_000);
+    const ipAllowed = await eu(env.SIGN_INS).getByName(`ip:${ipId}`).allow(CODES_PER_NETWORK_HOUR, 3_600_000);
+    if (!allowed || !ipAllowed) return page("Try later", heading("Too many attempts.", "Wait an hour, then try again."), 429, { "Retry-After": "3600" });
     // One cap on all code emails, so no spread of addresses can turn sign-in into a mailer.
     if (!await eu(env.SIGN_INS).getByName("send:all").allow(SIGN_IN_EMAILS_PER_HOUR, 3_600_000)) {
       return page("Email unavailable", heading("We couldn’t send your code.", "Try again in a few minutes."), 503, { "Retry-After": "600" });
