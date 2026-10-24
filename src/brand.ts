@@ -10,7 +10,8 @@ export const wordmark = `<svg class="wordmark" viewBox="0 0 483 90" aria-hidden=
 /** The ring on its own, used as the Otis mark (response windows, footer, rule cards). */
 export const ringMark = `<svg class="mark" viewBox="448 4.84 35 35" aria-hidden="true" focusable="false"><path d="${ringPath}"/></svg>`;
 
-/** Favicon: the ring in ink, white when the browser is in dark mode (Stefan, 2026-10-23: no teal). */
+/** Favicon: the white ring on an ink square with rounded corners, the same in every theme so it reads on light and dark
+ * browser chrome (Stefan, 2026-10-24). The website's 48px PNG favicon is rendered from it. */
 /** Bump when an icon changes: browsers keep favicons in their own cache, so only a new address replaces one. */
-export const iconVersion = "3";
-export const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="448 4.84 35 35"><style>@media (prefers-color-scheme: dark){path{fill:#f5f5f5}}</style><path fill="#171717" d="${ringPath}"/></svg>`;
+export const iconVersion = "4";
+export const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#171717"/><path fill="#f5f5f5" transform="translate(13 13) scale(1.0857) translate(-448 -4.84)" d="${ringPath}"/></svg>`;
