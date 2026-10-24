@@ -85,6 +85,8 @@ const manifest = {
   },
 };
 const mcp = { mcpServers: { otis: { url: 'https://mcp.otisbase.com/mcp' } } };
+// The portal wants tools_triggered as one string, not a list (its upload check, 2026-10-24).
+for (const item of manifest.extensions['com.openai'].review.test_cases.positive) item.tools_triggered = item.tools_triggered.join(', ');
 
 // Every file of the Codex package except its manifest and MCP file, which are replaced above, and its README.
 async function files(directory) {
