@@ -4,13 +4,20 @@ import { schemas, READ_OPERATIONS, FREE_PLAN, TEAM_OPERATIONS, canonical, Domain
   type Operation, type Business, type ClientRecord, type Billable, type DomainResult, type Invoice, type Payment, type Actor, type Member, type Expense, type Timer } from "./models";
 import { calculate, round, taxBlockers } from "./billing";
 
+/** What one operation did, reported to the Worker for usage events. */
+export type Usage = { created: Record<string, number>; issued?: { currency: string; total_minor: number }; limit?: string };
+
 export class BusinessStore extends DurableObject<Env> {
   // Business records created by the current operation; invoices and the audit trail are not counted.
   private created = 0;
+  // What the current operation did, for usage events (src/usage.ts): new records by kind, an issued invoice, a limit hit.
+  private tracked: Usage = { created: {} };
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-    ctx.blockConcurrencyWhile(async () => {
-      ctx.storage.sql.exec(`
+    ctx.blockConcurrencyWhile(async () => this.schema());
+  }
+  private schema(): void {
+    this.ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS records (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE, kind TEXT NOT NULL, data TEXT NOT NULL CHECK(json_valid(data)));
         CREATE INDEX IF NOT EXISTS records_by_kind ON records(kind, sequence);
         CREATE TABLE IF NOT EXISTS requests (id TEXT PRIMARY KEY, operation TEXT NOT NULL, input TEXT NOT NULL, result TEXT NOT NULL);
@@ -18,8 +25,9 @@ export class BusinessStore extends DurableObject<Env> {
         INSERT OR IGNORE INTO counters(name, value) VALUES ('invoice', 0);
         CREATE TABLE IF NOT EXISTS payment_references (reference TEXT PRIMARY KEY, payment_id TEXT NOT NULL);
       `);
-    });
   }
+  /** Account deletion (admin_account_delete): every record, the audit history and the counters. The object stays usable, empty. */
+  async erase(): Promise<void> { await this.ctx.storage.deleteAll(); this.schema(); }
   private get<T>(kind: string, id: string): T {
     const row = this.ctx.storage.sql.exec<{ data: string }>("SELECT data FROM records WHERE kind = ? AND id = ?", kind, id).toArray()[0];
     if (!row) fail("NOT_FOUND", `${kind} record was not found in this business.`);
@@ -29,7 +37,10 @@ export class BusinessStore extends DurableObject<Env> {
     try { return this.get<T>(kind, id); } catch (e) { if (e instanceof DomainError && e.code === "NOT_FOUND") return null; throw e; }
   }
   private put(kind: string, record: { id: string }): void {
-    if (kind !== "audit" && kind !== "invoice" && !this.ctx.storage.sql.exec("SELECT 1 FROM records WHERE id = ?", record.id).toArray().length) this.created++;
+    if (kind !== "audit" && kind !== "invoice" && !this.ctx.storage.sql.exec("SELECT 1 FROM records WHERE id = ?", record.id).toArray().length) {
+      this.created++;
+      this.tracked.created[kind] = (this.tracked.created[kind] ?? 0) + 1;
+    }
     this.ctx.storage.sql.exec("INSERT INTO records(id, kind, data) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data", record.id, kind, JSON.stringify(record));
   }
   private list(kind: string, limit: number, offset: number, filters: Record<string, unknown> = {}) {
@@ -78,6 +89,7 @@ export class BusinessStore extends DurableObject<Env> {
       month_resets_at: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString() };
   }
   private limitReached(limit: keyof typeof FREE_PLAN, used: number, resets_at: string, message: string): never {
+    this.tracked.limit = limit;
     fail("PLAN_LIMIT", message, { limit, allowed: FREE_PLAN[limit], used, resets_at });
   }
   private meterRequest() {
@@ -99,7 +111,36 @@ export class BusinessStore extends DurableObject<Env> {
   execute(operation: Operation, input: unknown, actor: Actor): string {
     return JSON.stringify(this.executeResult(operation, input, actor));
   }
+  /**
+   * Admin support reads (src/admin.ts): any read operation, without membership checks, request metering,
+   * audit entries or saved requests. Writes are refused. Returns serialized JSON like execute.
+   */
+  adminRead(operation: Operation, input: unknown): string {
+    if (!READ_OPERATIONS.has(operation)) return JSON.stringify({ ok: false, code: "FORBIDDEN", message: "Admin access is read-only." });
+    try {
+      const data = this.dispatch(operation, schemas[operation].parse(input ?? {}), { userId: "admin", home: true, team: true });
+      return JSON.stringify({ ok: true, data });
+    } catch (e) {
+      if (e instanceof DomainError) return JSON.stringify({ ok: false, code: e.code, message: e.message });
+      if (e instanceof z.ZodError) return JSON.stringify({ ok: false, code: "INVALID_INPUT", message: z.prettifyError(e) });
+      throw e;
+    }
+  }
+  /** The business, its stored records by kind and this period's plan counters, for the admin tools. */
+  adminSummary(): string {
+    const usage = this.usage();
+    const counts = Object.fromEntries(this.ctx.storage.sql.exec<{ kind: string; n: number }>("SELECT kind, count(*) AS n FROM records GROUP BY kind").toArray().map(r => [r.kind, r.n]));
+    const issued = this.ctx.storage.sql.exec<{ n: number }>("SELECT count(*) AS n FROM records WHERE kind = 'invoice' AND json_extract(data, '$.status') = 'issued'").one().n;
+    return JSON.stringify({ business: this.optional<Business>("business", "business"), record_counts: counts, issued_invoices: issued,
+      usage: { requests_today: this.counter(usage.requests), new_records_this_month: this.counter(usage.created), issued_invoices_this_month: this.counter(usage.issued) } });
+  }
+  /** Like execute, plus what the operation did for usage events. A replayed request reports nothing new. */
+  executeTracked(operation: Operation, input: unknown, actor: Actor): string {
+    const result = this.executeResult(operation, input, actor);
+    return JSON.stringify({ result, usage: this.tracked });
+  }
   private executeResult(operation: Operation, input: unknown, actor: Actor): DomainResult {
+    this.tracked = { created: {} };
     if (!Object.hasOwn(schemas, operation)) return { ok: false, code: "UNKNOWN_OPERATION", message: "Unknown operation." };
     try {
       const parsed = schemas[operation].parse(input);
@@ -319,7 +360,9 @@ export class BusinessStore extends DurableObject<Env> {
         invoice.number = this.ctx.storage.sql.exec<{ value: number }>("UPDATE counters SET value = value + 1 WHERE name = 'invoice' RETURNING value").one().value;
         const preferences = invoice.business_snapshot.invoice_preferences;
         invoice.display_number = `${preferences?.prefix ?? ""}${String(invoice.number).padStart(preferences?.number_padding ?? 1, "0")}`;
-        invoice.status = "issued"; invoice.issued_at = new Date().toISOString(); this.put("invoice", invoice); return this.balance(invoice);
+        invoice.status = "issued"; invoice.issued_at = new Date().toISOString(); this.put("invoice", invoice);
+        this.tracked.issued = { currency: invoice.currency, total_minor: invoice.total_minor };
+        return this.balance(invoice);
       }
       case "invoice_cancel_draft": {
         const p = schemas.invoice_cancel_draft.parse(input); const invoice = this.get<Invoice>("invoice", p.invoice_id);

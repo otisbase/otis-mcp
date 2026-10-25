@@ -13,6 +13,10 @@ import { workflows, workflowText } from "./workflows";
 import { sendFeedback } from "./feedback";
 import { z } from "zod";
 import { descriptions, titles } from "./descriptions";
+import { recordUsage } from "./usage";
+import { trackCall } from "./tracking";
+import { isAdmin, registerAdminTools } from "./admin";
+import type { Usage } from "./business-store";
 
 export async function privateOperation(env: Env, identity: Identity, operation: Operation, input: unknown): Promise<DomainResult> {
   const parsed = schemas[operation].parse(input);
@@ -40,10 +44,16 @@ export async function privateOperation(env: Env, identity: Identity, operation: 
   }
   const businessId = "business_id" in parsed && parsed.business_id ? String(parsed.business_id) : homeId;
   const inviteeId = operation === "team_invite" ? await digest(`otis-user:${schemas.team_invite.parse(parsed).email}`) : undefined;
-  const result = JSON.parse(await eu(env.BUSINESSES).getByName(businessId).execute(operation, parsed, { userId: identity.userId, home: businessId === homeId, inviteeId, team })) as DomainResult;
+  const { result, usage } = JSON.parse(await eu(env.BUSINESSES).getByName(businessId).executeTracked(operation, parsed, { userId: identity.userId, home: businessId === homeId, inviteeId, team })) as { result: DomainResult; usage: Usage };
+  const event = { user: identity.userId, tool: operation, outcome: result.ok ? "ok" : result.code, business: businessId };
+  // A refused operation rolls back, so it created and issued nothing; only its plan-limit refusal is an event.
+  if (result.ok) for (const [kind, count] of Object.entries(usage.created)) recordUsage(env, { ...event, event: "record_created", kind, count });
+  if (result.ok && usage.issued) recordUsage(env, { ...event, event: "invoice_issued", currency: usage.issued.currency, amount_minor: usage.issued.total_minor });
+  if (usage.limit) recordUsage(env, { ...event, event: "plan_limit", kind: usage.limit });
   if (result.ok) {
-    // Retrying an acknowledged business operation repairs an interrupted index write.
-    await account.add(businessId);
+    // Retrying an acknowledged business write repairs an interrupted index write. Reads skip it: businesses_list
+    // indexes the home business itself, and each skipped call saves a round trip to storage.
+    if (!READ_OPERATIONS.has(operation)) await account.add(businessId);
     if (inviteeId) {
       await eu(env.ACCOUNTS).getByName(inviteeId).add(businessId);
       const invite = schemas.team_invite.parse(parsed);
@@ -53,7 +63,7 @@ export async function privateOperation(env: Env, identity: Identity, operation: 
   }
   return result;
 }
-export async function handleMcp(request: Request, env: Env, ctx: ExecutionContext, identity?: Identity): Promise<Response> {
+export async function handleMcp(request: Request, env: Env, ctx: ExecutionContext, identity?: Identity, clientId?: string): Promise<Response> {
   const demo = !identity;
   const factory = () => {
     const server = new McpServer({ name: demo ? "otis-demo" : "otis", version: "0.1.0" }, {
@@ -85,13 +95,20 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
           const result = operation === "otis_menu" ? otisMenu(demo, env.ORIGIN)
             : operation === "tax_guide" ? { ok: true, data: guideFor(schemas.tax_guide.parse(input).country) }
             : demo ? demoResult(operation, input) : await privateOperation(env, identity!, operation, input);
+          const outcome = result as { ok: boolean; code?: string };
+          recordUsage(env, { event: "tool_call", user: identity?.userId ?? "demo", tool: operation, outcome: outcome.ok ? "ok" : outcome.code, client: clientId });
+          if (identity) ctx.waitUntil(trackCall(env, identity, operation, outcome.ok));
           return { content: [{ type: "text" as const, text: JSON.stringify(result) }], structuredContent: result as Record<string, unknown>, isError: (result as { ok: boolean }).ok === false };
         } catch (e) {
           const result = { ok: false, code: e instanceof z.ZodError ? "INVALID_INPUT" : "RETRY", message: e instanceof z.ZodError ? z.prettifyError(e) : "Otis could not complete the request. Retry with the same request_id." };
+          recordUsage(env, { event: "tool_call", user: identity?.userId ?? "demo", tool: operation, outcome: result.code, client: clientId });
+          if (identity) ctx.waitUntil(trackCall(env, identity, operation, false));
           return { content: [{ type: "text" as const, text: JSON.stringify(result) }], structuredContent: result, isError: true };
         }
       });
     }
+    // Admin tools exist only on an admin's own connection (src/admin.ts).
+    if (!demo && isAdmin(env, identity)) registerAdminTools(server, env, identity!);
     return server;
   };
   return createMcpHandler(factory, { route: demo ? "/demo/mcp" : "/mcp", allowedHostnames: [new URL(env.ORIGIN).hostname], allowedOriginHostnames: [new URL(env.ORIGIN).hostname, new URL(env.SITE_ORIGIN).hostname] })(request, env, ctx);

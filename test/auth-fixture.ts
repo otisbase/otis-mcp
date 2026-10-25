@@ -1,16 +1,23 @@
 import { env } from "cloudflare:workers";
-import { createExecutionContext } from "cloudflare:test";
+import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { expect } from "vitest";
 import worker from "../src/index";
 
 export const origin = "https://otis.test";
 export const rid = () => crypto.randomUUID();
+// Execution contexts of local requests, so tests can wait for work the Worker runs after responding.
+const contexts: ExecutionContext[] = [];
+export async function settle(): Promise<void> {
+  for (const context of contexts.splice(0)) await waitOnExecutionContext(context);
+}
 export function localFetch(bindings: Env = env) {
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const request = new Request(input, init);
     request.headers.set("Host", new URL(request.url).host);
-    return worker.fetch(request as Parameters<typeof worker.fetch>[0], bindings, createExecutionContext());
+    const context = createExecutionContext();
+    contexts.push(context);
+    return worker.fetch(request as Parameters<typeof worker.fetch>[0], bindings, context);
   };
 }
 export async function authFlow(options: { email?: string; failEmail?: boolean; redirect?: string; scope?: string; bindings?: Partial<Env>; clientId?: string } = {}) {

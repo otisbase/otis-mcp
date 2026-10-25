@@ -46,6 +46,19 @@ export class FeedbackStore extends DurableObject<Env> {
   delivered(id: string, delivery: Delivery, error?: string): void {
     this.ctx.storage.sql.exec("UPDATE feedback SET data = json_patch(data, ?) WHERE id = ?", JSON.stringify({ delivery, delivery_error: error ?? null }), id);
   }
+  /** Account deletion: every message the person sent. Returns how many were removed. */
+  eraseAccount(accountId: string): number {
+    return this.ctx.storage.sql.exec("DELETE FROM feedback WHERE account_id = ?", accountId).rowsWritten;
+  }
+  /** Feedback received per kind between two UTC days, for admin_stats. */
+  countsByKind(from: string, to: string): Record<string, number> {
+    return Object.fromEntries(this.ctx.storage.sql.exec<{ kind: string; n: number }>(
+      "SELECT json_extract(data, '$.kind') AS kind, count(*) AS n FROM feedback WHERE day BETWEEN ? AND ? GROUP BY kind", from, to).toArray().map(r => [r.kind, r.n]));
+  }
+  /** Everything one person sent, newest first, for admin_account_get. */
+  forAccount(accountId: string): string {
+    return JSON.stringify(this.ctx.storage.sql.exec<{ data: string }>("SELECT data FROM feedback WHERE account_id = ? ORDER BY rowid DESC", accountId).toArray().map(r => JSON.parse(r.data)));
+  }
   sentToday(accountId: string): number {
     return this.ctx.storage.sql.exec<{ count: number }>("SELECT count(*) AS count FROM feedback WHERE account_id = ? AND day = ?", accountId, new Date().toISOString().slice(0, 10)).one().count;
   }

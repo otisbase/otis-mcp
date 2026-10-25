@@ -6,6 +6,8 @@ import { z } from "zod";
 import { escapeHtml, heading, networkKey, oneLine, page } from "./html";
 import { eu } from "./regions";
 import { notifyConnection } from "./notify";
+import { registry } from "./registry";
+import { isInternal } from "./tracking";
 
 /** Wrong sign-in codes allowed per email in 24 hours, across all flows. */
 export const FAILED_CODES_PER_DAY = 10;
@@ -41,7 +43,7 @@ export function authorizationServer(env: Env) {
 }
 
 export function resourceServer(env: Env, handler: (
-  request: Request, env: Env, context: ExecutionContext, identity: Identity
+  request: Request, env: Env, context: ExecutionContext, identity: Identity, clientId?: string
 ) => Promise<Response>) {
   const authorization = authorizationServer(env);
   return new OAuthResourceServer<Env, Identity>({
@@ -58,7 +60,7 @@ export function resourceServer(env: Env, handler: (
           !context.props?.userId || context.props.userId !== context.auth.userId) {
           return new Response("Access denied.", { status: 403 });
         }
-        return handler(request, bindings, context, context.props);
+        return handler(request, bindings, context, context.props, context.auth.clientId);
       }
     }
   });
@@ -100,7 +102,9 @@ function verifyForm(id: string, csrf: string, email: string, clientName: string,
     `By continuing, you accept the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and the <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.`);
 }
 
-export async function authorize(request: Request, env: Env): Promise<Response> {
+export async function authorize(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  // Sign-in counts for the admin funnel, written after the response.
+  const step = (s: "requested" | "accepted" | "wrong" | "completed") => ctx.waitUntil(registry(env).signInStep(new Date().toISOString().slice(0, 10), s));
   const url = new URL(request.url);
   if (env.SIGN_IN_ENABLED !== "true") {
     return page("Sign-in unavailable", heading("Sign-in is turned off here.", "Use the live service at otisbase.com."), 503);
@@ -180,6 +184,7 @@ export async function authorize(request: Request, env: Env): Promise<Response> {
     // share it; the guess limits do. Both are secrets; deleting either switches it off.
     if (env.REVIEW_EMAIL && env.REVIEW_CODE && email === env.REVIEW_EMAIL.toLowerCase()) {
       if (!await store.setCode(cookieHash, csrf, email, await digest(`${id}:${env.REVIEW_CODE}`))) return expired();
+      step("requested");
       return page("Verify email", verifyForm(id, csrf, email, flow.clientName), 200, undefined, new URL(flow.request.redirectUri));
     }
     const allowed = await eu(env.SIGN_INS).getByName(`email:${emailId}`).allow(CODES_PER_EMAIL_HOUR, 3_600_000)
@@ -204,6 +209,7 @@ export async function authorize(request: Request, env: Env): Promise<Response> {
     } catch {
       return page("Email unavailable", heading("We couldn’t send your code.", "Try again in a few minutes."), 503);
     }
+    step("requested");
     return page("Verify email", verifyForm(id, csrf, email, flow.clientName), 200, undefined, new URL(flow.request.redirectUri));
   }
   if (url.pathname === "/authorize/verify") {
@@ -214,9 +220,17 @@ export async function authorize(request: Request, env: Env): Promise<Response> {
     const verified = await store.verify(cookieHash, csrf, await digest(`${id}:${code}`));
     if (!verified?.email) {
       if (failed) await failed.allow(FAILED_CODES_PER_DAY, 86_400_000);
+      step("wrong");
       return page("Verify email", verifyForm(id, csrf, flow.email ?? "", flow.clientName, "That code is wrong or has expired."), 400, undefined, new URL(flow.request.redirectUri));
     }
     const userId = await digest(`otis-user:${verified.email}`);
+    step("accepted");
+    // A suspended account cannot reconnect. Checked only here, after the code proves the address, never per request.
+    // If the registry cannot answer, sign-in goes ahead: suspension already revoked the person's grants.
+    const status = await registry(env).person(userId).then(person => person?.status, () => undefined);
+    if (status === "suspended") {
+      return page("Account suspended", heading("This account is suspended.", "Write to support@otisbase.com."), 403);
+    }
     let redirectTo: string;
     try {
       // One email can stay connected from any number of assistants and devices at once (Stefan, 2026-10-24),
@@ -230,6 +244,9 @@ export async function authorize(request: Request, env: Env): Promise<Response> {
     } catch {
       return page("Connection error", heading("We couldn’t finish the connection.", "Go back to your assistant and connect again."), 502);
     }
+    step("completed");
+    ctx.waitUntil((async () => registry(env).signedIn({ userId, email: verified.email!, businessId: await digest(`otis-business:${userId}`),
+      clientId: verified.request.clientId, clientName: flow.clientName, internal: isInternal(env, verified.email), at: new Date().toISOString() }))());
     await notifyConnection(env, verified.email, flow.clientName);
     return new Response(null, { status: 303, headers: {
       Location: redirectTo, "Cache-Control": "no-store",

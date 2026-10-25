@@ -4,6 +4,8 @@
   "main": "src/index.ts",
   "account_id": "a2335adc4b4a1a22dfe9eb4c6477c4b3",
   "compatibility_date": "2026-10-20",
+  // Run next to the EU storage: assistants call from US servers, and each storage call from there crossed the Atlantic.
+  "placement": { "region": "aws:eu-central-1" },
   "compatibility_flags": [
     "nodejs_compat",
     "global_fetch_strictly_public"
@@ -29,6 +31,10 @@
       {
         "name": "FEEDBACK",
         "class_name": "FeedbackStore"
+      },
+      {
+        "name": "REGISTRY",
+        "class_name": "RegistryStore"
       }
     ]
   },
@@ -46,6 +52,19 @@
       "new_sqlite_classes": [
         "FeedbackStore"
       ]
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": [
+        "RegistryStore"
+      ]
+    }
+  ],
+  // Usage events for the admin tools (src/usage.ts): fire-and-forget writes, kept by Cloudflare for three months.
+  "analytics_engine_datasets": [
+    {
+      "binding": "USAGE",
+      "dataset": "otis_usage"
     }
   ],
   "kv_namespaces": [
@@ -67,7 +86,9 @@
     "DO_JURISDICTION": "eu",
     "SIGN_IN_ENABLED": "true",
     // Team sharing is off (a possible Pro feature); "true" offers the team tools and shared access again.
-    "TEAM_ENABLED": "false"
+    "TEAM_ENABLED": "false",
+    // The Cloudflare account the admin tools query through the Analytics Engine SQL API.
+    "ANALYTICS_ACCOUNT_ID": "a2335adc4b4a1a22dfe9eb4c6477c4b3"
   },
   "routes": [
     {

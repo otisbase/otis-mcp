@@ -9,6 +9,7 @@ import geistMono from "./fonts/geist-mono.woff2";
 export { AccountStore } from "./account-store";
 export { BusinessStore } from "./business-store";
 export { FeedbackStore } from "./feedback";
+export { RegistryStore } from "./registry";
 export { SignInStore } from "./sign-in-store";
 
 
@@ -81,7 +82,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext, url: URL
       }
       return response;
     }
-    if (url.pathname.startsWith("/authorize")) return authorize(request, env);
+    if (url.pathname.startsWith("/authorize")) return authorize(request, env, ctx);
     const response = await authorizationServer(env).fetch(request, env, ctx);
     // An unknown address on the MCP host, opened in a browser, gets the sign-in shell rather than plain text.
     if (response.status === 404 && request.method === "GET" && (request.headers.get("Accept") ?? "").includes("text/html")) {

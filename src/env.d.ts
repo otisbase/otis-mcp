@@ -6,4 +6,10 @@ interface Env {
   REVIEW_CODE?: string;
   /** The domain-verification token from OpenAI's plugin portal, served at /.well-known/openai-apps-challenge. */
   OPENAI_APPS_CHALLENGE?: string;
+  /** Comma-separated verified sign-in emails that get the admin tools (src/admin.ts). */
+  ADMIN_EMAILS?: string;
+  /** Comma-separated QA and test emails left out of the admin stats. */
+  INTERNAL_EMAILS?: string;
+  /** Read-only Cloudflare API token for the Analytics Engine SQL API, used by admin_usage. */
+  ANALYTICS_API_TOKEN?: string;
 }
