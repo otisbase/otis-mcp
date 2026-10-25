@@ -8,6 +8,8 @@ interface Env {
   OPENAI_APPS_CHALLENGE?: string;
   /** Comma-separated verified sign-in emails that get the admin tools (src/admin.ts). */
   ADMIN_EMAILS?: string;
+  /** Comma-separated addresses that get the “New Otis sign-up” email. Unset: no sign-up emails. */
+  SIGNUP_NOTICE_TO?: string;
   /** Comma-separated QA and test emails left out of the admin stats. */
   INTERNAL_EMAILS?: string;
   /** Read-only Cloudflare API token for the Analytics Engine SQL API, used by admin_usage. */

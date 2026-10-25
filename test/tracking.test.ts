@@ -91,4 +91,31 @@ describe("tracking", () => {
     expect((await flow.send()).status).toBe(200);
     expect((await flow.post("/authorize/verify", { code: flow.code() })).status).toBe(303);
   });
+
+  it("a new person's first sign-in emails the sign-up recipients, not the admins", async () => {
+    const email = `${rid()}@example.com`;
+    const c = await connected(email, { ADMIN_EMAILS: "admin@example.com", SIGNUP_NOTICE_TO: "boss@example.com, second@example.com" });
+    await settle();
+    const notices = c.deliveries.filter(d => (d as { subject?: string }).subject === "New Otis sign-up");
+    expect(notices.map(d => d.to).sort()).toEqual(["boss@example.com", "second@example.com"]);
+    expect(notices[0].text).toContain(email);
+    expect(notices[0].text).toContain("Local security checks");
+    expect(notices[0].text).toMatch(/people have signed up so far|person has signed up so far/);
+  });
+
+  it("signing in again sends no sign-up email", async () => {
+    const email = `${rid()}@example.com`;
+    await connected(email, { SIGNUP_NOTICE_TO: "boss@example.com" });
+    await settle();
+    const again = await connected(email, { SIGNUP_NOTICE_TO: "boss@example.com" });
+    await settle();
+    expect(again.deliveries.filter(d => (d as { subject?: string }).subject === "New Otis sign-up")).toEqual([]);
+  });
+
+  it("internal accounts send no sign-up email", async () => {
+    const email = `${rid()}@example.com`;
+    const c = await connected(email, { SIGNUP_NOTICE_TO: "boss@example.com", INTERNAL_EMAILS: email });
+    await settle();
+    expect(c.deliveries.filter(d => (d as { subject?: string }).subject === "New Otis sign-up")).toEqual([]);
+  });
 });

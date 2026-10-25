@@ -68,10 +68,13 @@ export class RegistryStore extends DurableObject<Env> {
   signInStep(day: string, step: "requested" | "accepted" | "wrong" | "completed"): void {
     this.sql(`INSERT INTO sign_in_days(day, ${step}) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET ${step} = ${step} + 1`, day);
   }
-  signedIn(p: { userId: string; email: string; businessId: string; clientId: string; clientName: string; internal: boolean; at: string }): void {
+  /** Returns whether this is a person the registry has never seen, and how many external people are signed up now. */
+  signedIn(p: { userId: string; email: string; businessId: string; clientId: string; clientName: string; internal: boolean; at: string }): { isNew: boolean; people: number } {
+    const isNew = this.sql("SELECT 1 FROM people WHERE user_id = ?", p.userId).length === 0;
     this.upsert(p, 0);
     this.sql(`INSERT INTO connections(user_id, client_id, client_name, first_at, last_at) VALUES (?, ?, ?, ?, ?)
       ON CONFLICT(user_id, client_id) DO UPDATE SET client_name = excluded.client_name, last_at = excluded.last_at`, p.userId, p.clientId, p.clientName, p.at, p.at);
+    return { isNew, people: this.sql<{ n: number }>("SELECT count(*) AS n FROM people WHERE internal = 0 AND deleted_at IS NULL")[0].n };
   }
   activity(p: { userId: string; email?: string; businessId: string; day: string; milestones: Milestone[]; internal: boolean; at: string }): void {
     this.upsert(p, 1);

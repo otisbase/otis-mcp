@@ -17,7 +17,7 @@ https://mcp.otisbase.com/mcp
 Sign-in uses OAuth with an email code, so there is no API key. [How to install](https://otisbase.com/connect) has a guide for Claude, ChatGPT, Claude Code, Codex, Cursor, Muse, Grok Bot and Mistral Vibe. The hosted service is free. Records are stored in the EU.
 
 - [MCP docs](https://otisbase.com/docs): the endpoint, the rules and every tool.
-- [Otis Plugins](https://github.com/otisbase/otis-plugins): the plugin for Claude and Codex: a menu and nine workflow skills.
+- Otis plugins, a menu and nine workflow skills for each assistant: [Claude](https://github.com/otisbase/otis-claude-plugin), [ChatGPT and Codex](https://github.com/otisbase/otis-openai-plugin), [Grok and Cursor](https://github.com/otisbase/otis-grok-plugin) and [other agents](https://github.com/otisbase/otis-agent-plugin).
 - [Skills](https://otisbase.com/skills): what each skill does.
 
 ## What Otis records
@@ -77,7 +77,7 @@ npm run dev -- --local --ip 127.0.0.1 --port 8788
 
 Then open http://127.0.0.1:8788/health. The local runtime uses local storage only.
 
-`npm run plugins:build` generates the Claude and Codex plugins into `plugins/` from `src/workflows.ts`. They are published to [otisbase/otis-plugins](https://github.com/otisbase/otis-plugins).
+The plugins for each assistant are generated from `src/workflows.ts` in the private project and published as their own repositories; [Skills](https://otisbase.com/skills) links them.
 
 ## Self-host
 

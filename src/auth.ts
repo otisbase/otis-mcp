@@ -5,9 +5,9 @@ import {
 import { z } from "zod";
 import { escapeHtml, heading, networkKey, oneLine, page } from "./html";
 import { eu } from "./regions";
-import { notifyConnection } from "./notify";
+import { notifyConnection, notifySignup } from "./notify";
 import { registry } from "./registry";
-import { isInternal } from "./tracking";
+import { emailList, isInternal } from "./tracking";
 
 /** Wrong sign-in codes allowed per email in 24 hours, across all flows. */
 export const FAILED_CODES_PER_DAY = 10;
@@ -245,8 +245,13 @@ export async function authorize(request: Request, env: Env, ctx: ExecutionContex
       return page("Connection error", heading("We couldn’t finish the connection.", "Go back to your assistant and connect again."), 502);
     }
     step("completed");
-    ctx.waitUntil((async () => registry(env).signedIn({ userId, email: verified.email!, businessId: await digest(`otis-business:${userId}`),
-      clientId: verified.request.clientId, clientName: flow.clientName, internal: isInternal(env, verified.email), at: new Date().toISOString() }))());
+    const internal = isInternal(env, verified.email);
+    ctx.waitUntil((async () => {
+      const signUp = await registry(env).signedIn({ userId, email: verified.email!, businessId: await digest(`otis-business:${userId}`),
+        clientId: verified.request.clientId, clientName: flow.clientName, internal, at: new Date().toISOString() });
+      // A first sign-in by someone new tells the admins (roadmap/admin.md); repeat sign-ins and internal accounts do not.
+      if (signUp?.isNew && !internal) await notifySignup(env, emailList(env.SIGNUP_NOTICE_TO), { email: verified.email!, clientName: flow.clientName, people: signUp.people });
+    })());
     await notifyConnection(env, verified.email, flow.clientName);
     return new Response(null, { status: 303, headers: {
       Location: redirectTo, "Cache-Control": "no-store",

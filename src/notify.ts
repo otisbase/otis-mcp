@@ -46,3 +46,12 @@ export function notifyRestored(env: Env, email: string, message?: string): Promi
   return send(env, email, { subject: "Your Otis account is active again", footer: accountFooter,
     lines: [...(message ? [message, ""] : []), "You can sign in and connect your assistants again."] });
 }
+
+/** To SIGNUP_NOTICE_TO when someone signs in for the first time. Internal accounts never trigger it; no recipients, no email. */
+export async function notifySignup(env: Env, recipients: string[], who: { email: string; clientName: string; people: number }): Promise<void> {
+  for (const to of recipients) {
+    await send(env, to, { subject: "New Otis sign-up", footer: ["", "Otis · otisbase.com"],
+      lines: [`${who.email} signed up through ${who.clientName} on ${new Date().toUTCString()}.`,
+        `${who.people} ${who.people === 1 ? "person has" : "people have"} signed up so far, not counting internal accounts.`] });
+  }
+}
