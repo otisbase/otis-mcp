@@ -80,6 +80,17 @@ export const adminTools = (env: Env): Record<string, Tool> => ({
       return { ok: true, data: { range: { from, to }, include_internal: includeInternal, events, businesses, plan_pressure } };
     }
   },
+  admin_feedback_list: {
+    title: "Admin: feedback", description: "Feedback people sent with feedback_send, newest first: kind, message, assistant, date, delivery, and the reply email only when they agreed to a reply. internal marks admin and test accounts. To see who sent a message, call admin_account_get with its account_id.",
+    input: { kind: z.enum(["feature", "problem", "other"]).optional(), from: date.optional(), to: date.optional(), limit: z.number().int().min(1).max(100).default(50), offset: z.number().int().min(0).default(0) },
+    handler: async p => {
+      const page = JSON.parse(await eu(env.FEEDBACK).getByName("inbox").list(p)) as { records: { id: string; account_id: string; received_at: string; kind: string; message: string; client?: string; email?: string; delivery: string }[]; next_offset: number | null };
+      const internal = new Map<string, boolean>();
+      for (const id of new Set(page.records.map(r => r.account_id))) internal.set(id, ((await registry(env).person(id)) as Person | null)?.internal === 1);
+      return { ok: true, data: { records: page.records.map(r => ({ feedback_id: r.id, received_at: r.received_at, kind: r.kind, message: r.message, client: r.client ?? null,
+        delivery: r.delivery, reply_email: r.email ?? null, account_id: r.account_id, internal: internal.get(r.account_id) ?? false })), next_offset: page.next_offset } };
+    }
+  },
   admin_users_list: {
     title: "Admin: people", description: "List people with their email, sign-up date, last active day, milestones and status, newest first. Shows personal data: give a reason.",
     input: { reason, filter: z.enum(["active", "dormant", "internal", "suspended"]).optional(), limit: z.number().int().min(1).max(100).default(50), offset: z.number().int().min(0).default(0) },
@@ -89,10 +100,16 @@ export const adminTools = (env: Env): Record<string, Tool> => ({
     }
   },
   admin_account_get: {
-    title: "Admin: one account", description: "One person's account by sign-in email: registry facts, connected assistants, plan usage, stored records by kind and the feedback they sent. Works for people the registry has not seen. Give a reason.",
-    input: { reason, email },
+    title: "Admin: one account", description: "One person's account by sign-in email, or by the account ID on a feedback message: registry facts, connected assistants, plan usage, stored records by kind and the feedback they sent. By email it works for people the registry has not seen. Give a reason.",
+    input: { reason, email: email.optional(), user_id: z.string().regex(/^[0-9a-f]{64}$/).optional().describe("The account_id from admin_feedback_list.") },
     handler: async (p, admin) => {
-      const t = await adminTarget(p.email);
+      let address = p.email as string | undefined;
+      if (!address && p.user_id) {
+        address = ((await registry(env).person(p.user_id)) as Person | null)?.email ?? undefined;
+        if (!address) return { ok: false, code: "NOT_FOUND", message: "The registry has no email for this account ID. Ask for the person's sign-in email." };
+      }
+      if (!address) return { ok: false, code: "INVALID_INPUT", message: "Give email or user_id." };
+      const t = await adminTarget(address);
       await log(env, admin, "admin_account_get", p.reason, "ok", t);
       const person = await registry(env).person(t.userId) as Person | null;
       const summary = JSON.parse(await eu(env.BUSINESSES).getByName(t.businessId).adminSummary());

@@ -55,6 +55,13 @@ export class FeedbackStore extends DurableObject<Env> {
     return Object.fromEntries(this.ctx.storage.sql.exec<{ kind: string; n: number }>(
       "SELECT json_extract(data, '$.kind') AS kind, count(*) AS n FROM feedback WHERE day BETWEEN ? AND ? GROUP BY kind", from, to).toArray().map(r => [r.kind, r.n]));
   }
+  /** The whole inbox, newest first, optionally one kind and an inclusive UTC day range, for admin_feedback_list. */
+  list(p: { kind?: string; from?: string; to?: string; limit: number; offset: number }): string {
+    const rows = this.ctx.storage.sql.exec<{ data: string }>(
+      "SELECT data FROM feedback WHERE (?1 IS NULL OR json_extract(data, '$.kind') = ?1) AND day BETWEEN coalesce(?2, '0000-00-00') AND coalesce(?3, '9999-99-99') ORDER BY rowid DESC LIMIT ?4 OFFSET ?5",
+      p.kind ?? null, p.from ?? null, p.to ?? null, p.limit + 1, p.offset).toArray();
+    return JSON.stringify({ records: rows.slice(0, p.limit).map(r => JSON.parse(r.data)), next_offset: rows.length > p.limit ? p.offset + p.limit : null });
+  }
   /** Everything one person sent, newest first, for admin_account_get. */
   forAccount(accountId: string): string {
     return JSON.stringify(this.ctx.storage.sql.exec<{ data: string }>("SELECT data FROM feedback WHERE account_id = ? ORDER BY rowid DESC", accountId).toArray().map(r => JSON.parse(r.data)));

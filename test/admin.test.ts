@@ -236,3 +236,46 @@ describe("admin delete", () => {
     expect((await confirmDelete(a, a.adminEmail, a.adminEmail)).structuredContent).toMatchObject({ ok: false, code: "ADMIN_PROTECTED" });
   });
 });
+
+describe("admin feedback", () => {
+  const send = (who: { userId: string; email: string }, kind: string, message: string, reply_ok = false) =>
+    privateOperation(env, who, "feedback_send", { request_id: rid(), kind, message, reply_ok });
+  const someone = async () => { const email = `${rid()}@example.com`; return { userId: await digest(`otis-user:${email}`), email }; };
+
+  it("admin_feedback_list shows every message newest first, with the reply email only when agreed", async () => {
+    const a = await admin(), quiet = await someone(), chatty = await someone();
+    value(await send(quiet, "problem", "The invoice total looked wrong."));
+    value(await send(chatty, "feature", "Please add recurring invoices.", true));
+    const { records } = value((await a.call("admin_feedback_list", { limit: 100 })).structuredContent);
+    const ours = records.filter((r: { account_id: string }) => [quiet.userId, chatty.userId].includes(r.account_id));
+    expect(ours.map((r: { message: string }) => r.message)).toEqual(["Please add recurring invoices.", "The invoice total looked wrong."]);
+    expect(ours[0]).toMatchObject({ kind: "feature", reply_email: chatty.email, internal: false });
+    expect(ours[1]).toMatchObject({ kind: "problem", reply_email: null });
+    expect(JSON.stringify(ours[1])).not.toContain(quiet.email);
+  });
+
+  it("admin_feedback_list filters by kind and marks internal accounts", async () => {
+    const a = await admin();
+    value(await send({ userId: await digest(`otis-user:${a.adminEmail}`), email: a.adminEmail }, "other", "Testing feedback from the admin account."));
+    await settle();
+    const { records } = value((await a.call("admin_feedback_list", { kind: "other", limit: 100 })).structuredContent);
+    expect(records.every((r: { kind: string }) => r.kind === "other")).toBe(true);
+    expect(records.find((r: { message: string }) => r.message === "Testing feedback from the admin account.")).toMatchObject({ internal: true });
+  });
+
+  it("admin_account_get finds the sender of a feedback message by account ID", async () => {
+    const a = await admin(), email = `${rid()}@example.com`;
+    await connected(email);
+    await settle();
+    const userId = await digest(`otis-user:${email}`);
+    const account = value((await a.call("admin_account_get", { reason: "Reply to feedback", user_id: userId })).structuredContent);
+    expect(account).toMatchObject({ email, user_id: userId, registered: true });
+    expect(await logFor(email)).toEqual([expect.objectContaining({ tool: "admin_account_get", reason: "Reply to feedback" })]);
+  });
+
+  it("admin_account_get needs an email or a known account ID", async () => {
+    const a = await admin();
+    expect((await a.call("admin_account_get", { reason: "Lookup" })).structuredContent).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+    expect((await a.call("admin_account_get", { reason: "Lookup", user_id: "f".repeat(64) })).structuredContent).toMatchObject({ ok: false, code: "NOT_FOUND" });
+  });
+});
