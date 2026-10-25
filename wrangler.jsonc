@@ -1,0 +1,89 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "otis",
+  "main": "src/index.ts",
+  "account_id": "a2335adc4b4a1a22dfe9eb4c6477c4b3",
+  "compatibility_date": "2026-10-20",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "workers_dev": false,
+  "rules": [
+    { "type": "Data", "globs": ["**/*.woff2"], "fallthrough": true }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "BUSINESSES",
+        "class_name": "BusinessStore"
+      },
+      {
+        "name": "SIGN_INS",
+        "class_name": "SignInStore"
+      },
+      {
+        "name": "ACCOUNTS",
+        "class_name": "AccountStore"
+      },
+      {
+        "name": "FEEDBACK",
+        "class_name": "FeedbackStore"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "BusinessStore",
+        "SignInStore",
+        "AccountStore"
+      ]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": [
+        "FeedbackStore"
+      ]
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "0cbfc9be35164697875f811c1995326c"
+    }
+  ],
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ],
+  "vars": {
+    "ORIGIN": "https://mcp.otisbase.com",
+    "SITE_ORIGIN": "https://otisbase.com",
+    "EMAIL_FROM": "Otis <login@otisbase.com>",
+    "FEEDBACK_TO": "support@otisbase.com",
+    "DO_JURISDICTION": "eu",
+    "SIGN_IN_ENABLED": "true",
+    // Team sharing is off (a possible Pro feature); "true" offers the team tools and shared access again.
+    "TEAM_ENABLED": "false"
+  },
+  "routes": [
+    {
+      "pattern": "mcp.otisbase.com",
+      "custom_domain": true
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "PUBLIC_REQUESTS",
+      "namespace_id": "814067219",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
+    }
+  ],
+  "preview_urls": false
+}

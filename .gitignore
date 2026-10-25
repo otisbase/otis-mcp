@@ -1,0 +1,17 @@
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+/node_modules/
+/.wrangler/
+/dist/
+/.dev.vars
+/.env
+/.env.*
+*.log
+/site/dist/
+/site/.wrangler/
+.DS_Store
+/site/node_modules/
+
+# Local QA output and generated plugin packages.
+/reports/
+/plugins/
